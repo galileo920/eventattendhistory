@@ -111,6 +111,8 @@ const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const FIELDS = ["artist","title","date","venue","open","start","seat","price","companion","setlist","memo"];
+/* 自動入力・貼り付け取り込みの対象(同行者・セットリスト・メモは手入力のみ) */
+const AUTO_FIELDS = ["artist","title","date","venue","open","start","seat","price"];
 
 function fmtDate(d){
   if(!d) return "日付未設定";
@@ -154,10 +156,7 @@ async function extractFromImage(dataUrl){
  "open":"開場時刻 HH:MM",
  "start":"開演時刻 HH:MM",
  "seat":"座席・整理番号など",
- "price":"チケット代(数字のみ)",
- "companion":"",
- "setlist":"",
- "memo":"その他の補足があれば短く"
+ "price":"チケット代(数字のみ)"
 }`;
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -371,7 +370,7 @@ function openDetail(id){
 
 /* 抽出結果(オブジェクト)をフォームに反映 */
 function applyResult(r){
-  FIELDS.forEach(k => {
+  AUTO_FIELDS.forEach(k => {
     const val = r[k];
     if(val === undefined || val === null || val === "") return;
     const el = $("#f_" + k);
@@ -470,7 +469,7 @@ function openForm(existing){
         if(!confirm(`${j.length}件をまとめて保存しますか?`)) return;
         for(const r of j){
           const o = {id: uid(), createdAt: Date.now(), updatedAt: Date.now()};
-          FIELDS.forEach(k => { o[k] = r[k] ?? ""; });
+          AUTO_FIELDS.forEach(k => { o[k] = r[k] ?? ""; });
           const p = Number(String(o.price).replace(/[^\d]/g, ""));
           o.price = o.price === "" ? "" : (p || "");
           await dbPut(o);
