@@ -369,6 +369,23 @@ function openDetail(id){
   };
 }
 
+/* 抽出結果(オブジェクト)をフォームに反映 */
+function applyResult(r){
+  FIELDS.forEach(k => {
+    const val = r[k];
+    if(val === undefined || val === null || val === "") return;
+    const el = $("#f_" + k);
+    if(!el) return;
+    if(k === "memo" || k === "setlist"){
+      el.value = el.value ? el.value + "\n" + val : String(val);
+    } else if(k === "price"){
+      el.value = String(val).replace(/[^\d]/g, "");
+    } else {
+      el.value = String(val);
+    }
+  });
+}
+
 /* ========== 入力フォーム ========== */
 function openForm(existing){
   const l = existing ? {...existing} : {id: uid(), createdAt: Date.now()};
@@ -386,6 +403,16 @@ function openForm(existing){
       <img id="pv" class="preview" style="display:none">
       <div id="st" class="status"></div>
       <div class="hint">チケット・フライヤー・予約画面のスクリーンショットなど。読み取り結果は下のフォームに入るので、確認・修正してから保存してください。</div>
+    </div>
+    <div class="card">
+      <b>チャットで読み取った結果を貼り付け</b>
+      <textarea id="txt" placeholder="Claudeが返したJSONを貼り付け" style="min-height:70px"></textarea>
+      <div class="row">
+        <button class="btn sec" id="paste" style="margin-top:8px">📋 クリップボードから</button>
+        <button class="btn" id="applyTxt" style="margin-top:8px">反映</button>
+      </div>
+      <div id="st2" class="status"></div>
+      <div class="hint">複数件のJSON(配列)を貼ると、まとめて保存できます。</div>
     </div>
     <div class="card">
       <label style="margin-top:0">アーティスト</label><input id="f_artist" value="${v("artist")}">
@@ -423,17 +450,7 @@ function openForm(existing){
       l.photo = small;
       const pv = $("#pv"); pv.src = small; pv.style.display = "block";
       const r = await extractFromImage(big);
-      FIELDS.forEach(k => {
-        const val = r[k];
-        if(val === undefined || val === null || val === "") return;
-        const el = $("#f_" + k);
-        if(!el) return;
-        if(k === "memo" || k === "setlist"){
-          el.value = el.value ? el.value + "\n" + val : String(val);
-        } else {
-          el.value = String(val).replace(k === "price" ? /[^\d]/g : /$^/, "");
-        }
-      });
+      applyResult(r);
       st.className = "status ok"; st.textContent = "読み取り完了。内容を確認してください。";
     } catch(err){
       st.className = "status err"; st.textContent = err.message;
@@ -442,6 +459,44 @@ function openForm(existing){
   };
   $("#cam").onchange = handle;
   $("#pick").onchange = handle;
+
+  const runTxt = async text => {
+    const st2 = $("#st2");
+    try {
+      const m = /[\[{][\s\S]*[\]}]/.exec(text || "");
+      if(!m) throw new Error("JSONが見つかりません");
+      let j = JSON.parse(m[0]);
+      if(Array.isArray(j) && j.length > 1){
+        if(!confirm(`${j.length}件をまとめて保存しますか?`)) return;
+        for(const r of j){
+          const o = {id: uid(), createdAt: Date.now(), updatedAt: Date.now()};
+          FIELDS.forEach(k => { o[k] = r[k] ?? ""; });
+          const p = Number(String(o.price).replace(/[^\d]/g, ""));
+          o.price = o.price === "" ? "" : (p || "");
+          await dbPut(o);
+        }
+        await refresh(); setTab("list");
+        return;
+      }
+      if(Array.isArray(j)) j = j[0];
+      if(!j || typeof j !== "object") throw new Error("形式が正しくありません");
+      applyResult(j);
+      st2.className = "status ok"; st2.textContent = "反映しました。内容を確認して保存してください。";
+    } catch(err){
+      st2.className = "status err"; st2.textContent = "取り込めませんでした: " + err.message;
+    }
+  };
+  $("#paste").onclick = async () => {
+    try {
+      const t = await navigator.clipboard.readText();
+      $("#txt").value = t;
+      await runTxt(t);
+    } catch(e){
+      $("#st2").className = "status err";
+      $("#st2").textContent = "貼り付けできませんでした。枠を長押しして貼り付けてから「反映」を押してください。";
+    }
+  };
+  $("#applyTxt").onclick = () => runTxt($("#txt").value);
 
   $("#save").onclick = async () => {
     FIELDS.forEach(k => { l[k] = $("#f_" + k).value.trim(); });
