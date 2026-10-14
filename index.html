@@ -111,9 +111,9 @@ function setSet(o){
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const FIELDS = ["artist","title","date","venue","open","start","seat","price","setlist"];
+const FIELDS = ["artist","title","venue","date","open","start","seatType","seat","price","setlist"];
 /* 自動入力・貼り付け取り込みの対象(同行者・セットリスト・メモは手入力のみ) */
-const AUTO_FIELDS = ["artist","title","date","venue","open","start","seat","price"];
+const AUTO_FIELDS = ["artist","title","venue","date","open","start","seatType","seat","price"];
 
 function fmtDate(d){
   if(!d) return "日付未設定";
@@ -148,7 +148,7 @@ async function extractFromImage(dataUrl){
   const {apiKey, model} = getSet();
   if(!apiKey) throw new Error("設定タブでAPIキーを入力してください");
   const b64 = dataUrl.split(",")[1];
-  const prompt = `この画像はライブ・コンサートのチケット、フライヤー、ポスター、または予約画面のスクリーンショットです。読み取れる情報を次のJSONだけで返してください(説明文やコードブロックは不要)。読み取れない項目は空文字にしてください。推測で埋めないでください。
+  const prompt = `この画像はライブ・コンサートの紙のチケット、電子チケット(チケットぴあ・イープラス・ローチケ等のアプリ画面のスクリーンショット)、フライヤー、ポスター、または予約画面です。購入者の名前は含めないでください。複数日にまたがる券の場合、dateは初日にしてください。読み取れる情報を次のJSONだけで返してください(説明文やコードブロックは不要)。読み取れない項目は空文字にしてください。推測で埋めないでください。
 {
  "artist":"アーティスト/出演者名",
  "title":"公演名・ツアー名",
@@ -156,7 +156,8 @@ async function extractFromImage(dataUrl){
  "venue":"会場名",
  "open":"開場時刻 HH:MM",
  "start":"開演時刻 HH:MM",
- "seat":"座席・整理番号など",
+ "seatType":"席種(例: 一般指定席、スタンディング、グッズ付指定席)",
+ "seat":"座席・整理番号(例: 11列40番、整理番号C 266番)",
  "price":"チケット代(数字のみ)"
 }`;
   const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -317,7 +318,7 @@ function exportJSON(){
   shareOrDownload(blob, `livelog-${stamp()}.json`);
 }
 function exportCSV(){
-  const cols = ["date","artist","title","venue","open","start","seat","price","setlist"];
+  const cols = ["date","artist","title","venue","open","start","seatType","seat","price","setlist"];
   const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = [cols.join(",")].concat(lives.slice().sort((a, b) => (a.date || "").localeCompare(b.date || "")).map(l => cols.map(c => q(l[c])).join(",")));
   const blob = new Blob(["\ufeff" + rows.join("\r\n")], {type: "text/csv"});
@@ -352,7 +353,8 @@ function openDetail(id){
       <div class="m">${fmtDate(l.date)}${l.venue ? " ・ " + esc(l.venue) : ""}</div>
     </div>
     ${row("開場 / 開演", [l.open, l.start].filter(Boolean).join(" / "))}
-    ${row("座席", l.seat)}
+    ${row("席種", l.seatType)}
+    ${row("座席・整理番号", l.seat)}
     ${row("チケット代", l.price !== "" && l.price != null ? yen(l.price) : "")}
     ${row("セットリスト", l.setlist)}
     ${l.photo ? `<img class="thumb" src="${l.photo}">` : ""}
@@ -414,12 +416,15 @@ function openForm(existing){
     </div>
     <div class="card">
       <label style="margin-top:0">アーティスト</label><input id="f_artist" value="${v("artist")}">
-      <label>公演名・ツアー名</label><input id="f_title" value="${v("title")}">
-      <label>日付</label><input id="f_date" type="date" value="${v("date")}">
+      <label>公演名</label><textarea id="f_title" style="min-height:110px">${v("title")}</textarea>
       <label>会場</label><input id="f_venue" value="${v("venue")}">
-      <label>開場</label><input id="f_open" type="time" value="${v("open")}">
-      <label>開演</label><input id="f_start" type="time" value="${v("start")}">
-      <label>座席</label><input id="f_seat" value="${v("seat")}">
+      <label>日付</label><input id="f_date" type="date" value="${v("date")}">
+      <div class="row">
+        <div><label>開場</label><input id="f_open" type="time" value="${v("open")}"></div>
+        <div><label>開演</label><input id="f_start" type="time" value="${v("start")}"></div>
+      </div>
+      <label>席種</label><input id="f_seatType" value="${v("seatType")}">
+      <label>座席・整理番号</label><input id="f_seat" value="${v("seat")}">
       <label>チケット代(円)</label><input id="f_price" type="number" inputmode="numeric" value="${v("price")}">
       <label>セットリスト</label><textarea id="f_setlist">${v("setlist")}</textarea>
     </div>
@@ -490,6 +495,7 @@ function openForm(existing){
 
   $("#save").onclick = async () => {
     FIELDS.forEach(k => { l[k] = $("#f_" + k).value.trim(); });
+    l.title = l.title.replace(/\s*\n\s*/g, " ");
     if(!l.artist && !l.title){ alert("アーティストか公演名を入力してください"); return; }
     l.price = l.price === "" ? "" : Number(l.price);
     l.updatedAt = Date.now();
