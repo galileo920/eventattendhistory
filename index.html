@@ -40,7 +40,8 @@ input,textarea,select{width:100%;padding:10px 12px;border:1px solid var(--line);
 textarea{min-height:80px;resize:vertical}
 label{display:block;margin-top:12px;font-size:13px;color:var(--sub)}
 .row{display:flex;gap:8px}
-.row>*{flex:1}
+.row>*{flex:1;min-width:0}
+input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;height:46px;display:block}
 .btn{display:block;width:100%;padding:13px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-fg);font-size:16px;font-weight:600;margin-top:14px}
 .btn.sec{background:var(--card);color:var(--fg);border:1px solid var(--line)}
 .btn.danger{background:var(--danger);color:#fff}
@@ -110,7 +111,7 @@ function setSet(o){
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const FIELDS = ["artist","title","date","venue","open","start","seat","price","companion","setlist","memo"];
+const FIELDS = ["artist","title","date","venue","open","start","seat","price","setlist"];
 /* 自動入力・貼り付け取り込みの対象(同行者・セットリスト・メモは手入力のみ) */
 const AUTO_FIELDS = ["artist","title","date","venue","open","start","seat","price"];
 
@@ -316,7 +317,7 @@ function exportJSON(){
   shareOrDownload(blob, `livelog-${stamp()}.json`);
 }
 function exportCSV(){
-  const cols = ["date","artist","title","venue","open","start","seat","price","companion","setlist","memo"];
+  const cols = ["date","artist","title","venue","open","start","seat","price","setlist"];
   const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = [cols.join(",")].concat(lives.slice().sort((a, b) => (a.date || "").localeCompare(b.date || "")).map(l => cols.map(c => q(l[c])).join(",")));
   const blob = new Blob(["\ufeff" + rows.join("\r\n")], {type: "text/csv"});
@@ -353,9 +354,7 @@ function openDetail(id){
     ${row("開場 / 開演", [l.open, l.start].filter(Boolean).join(" / "))}
     ${row("座席", l.seat)}
     ${row("チケット代", l.price !== "" && l.price != null ? yen(l.price) : "")}
-    ${row("同行者", l.companion)}
     ${row("セットリスト", l.setlist)}
-    ${row("メモ", l.memo)}
     ${l.photo ? `<img class="thumb" src="${l.photo}">` : ""}
     <button class="btn" id="edit">編集</button>
     <button class="btn danger" id="del">削除</button>
@@ -416,21 +415,13 @@ function openForm(existing){
     <div class="card">
       <label style="margin-top:0">アーティスト</label><input id="f_artist" value="${v("artist")}">
       <label>公演名・ツアー名</label><input id="f_title" value="${v("title")}">
-      <div class="row">
-        <div><label>日付</label><input id="f_date" type="date" value="${v("date")}"></div>
-        <div><label>会場</label><input id="f_venue" value="${v("venue")}"></div>
-      </div>
-      <div class="row">
-        <div><label>開場</label><input id="f_open" type="time" value="${v("open")}"></div>
-        <div><label>開演</label><input id="f_start" type="time" value="${v("start")}"></div>
-      </div>
-      <div class="row">
-        <div><label>座席</label><input id="f_seat" value="${v("seat")}"></div>
-        <div><label>チケット代(円)</label><input id="f_price" type="number" inputmode="numeric" value="${v("price")}"></div>
-      </div>
-      <label>同行者</label><input id="f_companion" value="${v("companion")}">
+      <label>日付</label><input id="f_date" type="date" value="${v("date")}">
+      <label>会場</label><input id="f_venue" value="${v("venue")}">
+      <label>開場</label><input id="f_open" type="time" value="${v("open")}">
+      <label>開演</label><input id="f_start" type="time" value="${v("start")}">
+      <label>座席</label><input id="f_seat" value="${v("seat")}">
+      <label>チケット代(円)</label><input id="f_price" type="number" inputmode="numeric" value="${v("price")}">
       <label>セットリスト</label><textarea id="f_setlist">${v("setlist")}</textarea>
-      <label>メモ</label><textarea id="f_memo">${v("memo")}</textarea>
     </div>
     <button class="btn" id="save">保存</button>
   `;
