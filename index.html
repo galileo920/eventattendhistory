@@ -121,8 +121,8 @@ function setSet(o){
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const GENRES = ["ライブ","お笑い","演劇","トーク"];
-const genreOf = l => GENRES.includes(l && l.genre) ? l.genre : "ライブ";
+const GENRES = ["音楽","お笑い","演劇","トーク"];
+const genreOf = l => l && l.genre === "ライブ" ? "音楽" : GENRES.includes(l && l.genre) ? l.genre : "音楽";
 const FIELDS = ["genre","title","artist","venue","date","open","start","seatType","seat","price","setlist"];
 /* 自動入力・貼り付け取り込みの対象(同行者・セットリスト・メモは手入力のみ) */
 const AUTO_FIELDS = ["genre","title","artist","venue","date","open","start","seatType","seat","price"];
@@ -162,7 +162,7 @@ async function extractFromImage(dataUrl){
   const b64 = dataUrl.split(",")[1];
   const prompt = `この画像はライブ・コンサートなどのイベントの紙のチケット、電子チケット(チケットぴあ・イープラス・ローチケ等のアプリ画面のスクリーンショット)、フライヤー、ポスター、または予約画面です。購入者の名前は含めないでください。複数日にまたがる券の場合、dateは初日にしてください。読み取れる情報を次のJSONだけで返してください(説明文やコードブロックは不要)。読み取れない項目は空文字にしてください。推測で埋めないでください。
 {
- "genre":"ジャンル(ライブ・お笑い・演劇・トークのいずれか。判断できなければ空文字)",
+ "genre":"ジャンル(音楽・お笑い・演劇・トークのいずれか。判断できなければ空文字)",
  "title":"公演名・イベント名・ツアー名",
  "artist":"出演者名(複数の場合は「、」で区切る)",
  "date":"開催日 YYYY-MM-DD(年が不明なら ${new Date().getFullYear()} とみなす)",
@@ -495,7 +495,7 @@ function openForm(existing){
         for(const r of j){
           const o = {id: uid(), createdAt: Date.now(), updatedAt: Date.now()};
           AUTO_FIELDS.forEach(k => { o[k] = r[k] ?? ""; });
-          o.genre = GENRES.includes(o.genre) ? o.genre : "ライブ";
+          o.genre = o.genre === "ライブ" ? "音楽" : GENRES.includes(o.genre) ? o.genre : "音楽";
           const p = Number(String(o.price).replace(/[^\d]/g, ""));
           o.price = o.price === "" ? "" : (p || "");
           await dbPut(o);
@@ -525,7 +525,7 @@ function openForm(existing){
 
   $("#save").onclick = async () => {
     FIELDS.forEach(k => { if(k !== "artist" && k !== "genre") l[k] = $("#f_" + k).value.trim(); });
-    { const gr = document.querySelector('input[name="genre"]:checked'); l.genre = gr ? gr.value : "ライブ"; }
+    { const gr = document.querySelector('input[name="genre"]:checked'); l.genre = gr ? gr.value : "音楽"; }
     l.title = l.title.replace(/\s*\n\s*/g, " ");
     l.artist = readArtists().filter(Boolean).join("、");
     if(!l.artist && !l.title){ alert("公演名か出演者を入力してください"); return; }
