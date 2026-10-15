@@ -367,7 +367,7 @@ function renderSettings(){
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length}</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016b</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
