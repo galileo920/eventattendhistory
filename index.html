@@ -17,6 +17,7 @@
   --card:var(--surface); --fg:var(--ink); --accent-fg:var(--accent-ink);
   --bg:#edeff4; --surface:#ffffff; --ink:#15171f; --sub:#5e6372; --line:#d9dce6;
   --accent:#d93a6b; --accent-ink:#ffffff; --accent-soft:#fbe3ea; --ok:#15803d; --danger:#c62828;
+  --g-owarai:#d9730d; --g-butai:#7c4dcc; --g-talk:#0f8a8a;
   --font-body:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif;
   --font-mono:"DM Mono",ui-monospace,"SF Mono",Menlo,monospace;
   --gutter-l:max(16px,env(safe-area-inset-left,0px)); --gutter-r:max(16px,env(safe-area-inset-right,0px));
@@ -25,12 +26,14 @@
   :root:not([data-theme="light"]){
     --bg:#0f1118; --surface:#181b25; --ink:#eef0f7; --sub:#9aa1b5; --line:#2a2f3e;
     --accent:#f0668f; --accent-ink:#1a0a10; --accent-soft:#34202a; --ok:#4ade80; --danger:#f87171;
+    --g-owarai:#f5a04a; --g-butai:#b79af0; --g-talk:#4cc9c9;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0f1118; --surface:#181b25; --ink:#eef0f7; --sub:#9aa1b5; --line:#2a2f3e;
   --accent:#f0668f; --accent-ink:#1a0a10; --accent-soft:#34202a; --ok:#4ade80; --danger:#f87171;
+    --g-owarai:#f5a04a; --g-butai:#b79af0; --g-talk:#4cc9c9;
   color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -61,10 +64,17 @@ label{display:block;margin-top:14px;font-size:13px;color:var(--sub);font-weight:
 .btn.sec{background:var(--surface);color:var(--ink);border-color:var(--line);font-weight:500}
 .btn.danger{background:var(--danger);color:#fff}
 .btn:disabled{opacity:.5;cursor:default}
+.exact{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--accent-soft);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:14px}
+.exact button{border:0;background:none;color:var(--accent);font-weight:700;cursor:pointer;padding:4px 8px}
+button.line{width:100%;text-align:left;cursor:pointer}
 .stub{display:flex;width:100%;text-align:left;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:0;margin-bottom:10px;cursor:pointer;overflow:hidden}
-.stub .when{flex:0 0 76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:12px 6px;border-right:2px dashed var(--line);background:var(--accent-soft)}
+.stub{--g:var(--accent)}
+.stub[data-g="お笑い"]{--g:var(--g-owarai)}
+.stub[data-g="舞台"]{--g:var(--g-butai)}
+.stub[data-g="トーク"]{--g:var(--g-talk)}
+.stub .when{flex:0 0 76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:12px 6px;border-right:2px dashed var(--line);background:color-mix(in srgb,var(--g) 14%,var(--surface))}
 .stub .when .y{font-family:var(--font-mono);font-size:11px;color:var(--sub)}
-.stub .when b{font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--accent);letter-spacing:-.02em}
+.stub .when b{font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--g);letter-spacing:-.02em}
 .stub .when .w{font-size:12px;color:var(--sub)}
 .stub .what{flex:1;min-width:0;padding:12px 14px}
 .stub .who{font-weight:700;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
@@ -250,7 +260,7 @@ async function extractFromImage(dataUrl){
 /* ========== 画面 ========== */
 let tab = "list";
 let lives = [];
-let query = "";
+let query = "", exact = null;
 let fGenre = "", fYear = "", statTab = "artist";
 const yearOf = l => (l.date || "").slice(0, 4);
 const filtered = () => lives.filter(l => (!fGenre || genreOf(l) === fGenre) && (!fYear || yearOf(l) === fYear));
@@ -272,7 +282,7 @@ function setTab(t){
   $("#fab").style.display = t === "list" ? "" : "none";
   render();
 }
-document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => setTab(b.dataset.tab));
+document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => { exact = null; setTab(b.dataset.tab); });
 $("#fab").onclick = () => openForm();
 
 function render(){
@@ -290,9 +300,11 @@ function renderList(){
   $("#app").innerHTML = `
     <input class="search" id="q" type="search" placeholder="公演名・出演者・会場などで検索" value="${esc(query)}">
     ${filterBar()}
+    ${exact ? `<div class="exact"><span>${exact.kind === "venue" ? "会場" : "出演者"}「${esc(exact.value)}」と完全一致</span><button type="button" id="exOff">解除</button></div>` : ""}
     <div id="listBody"></div>
   `;
   bindFilter();
+  if(exact) $("#exOff").onclick = () => { exact = null; renderList(); };
   fillList();
   const qi = $("#q");
   let comp = false;
@@ -304,13 +316,14 @@ function renderList(){
 function fillList(){
   const q = query.trim().toLowerCase();
   const rows = filtered()
+    .filter(l => !exact || (exact.kind === "venue" ? l.venue === exact.value : (l.artist || "").split(/[、,，]/).map(x => x.trim()).includes(exact.value)))
     .filter(l => !q || ["title","artist","venue"].some(f => String(l[f] ?? "").toLowerCase().includes(q)))
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const box = $("#listBody");
   if(!box) return;
   box.innerHTML = rows.length ? rows.map(l => {
     const p = dateParts(l.date);
-    return `<button class="stub" data-id="${esc(l.id)}">
+    return `<button class="stub" data-g="${esc(genreOf(l))}" data-id="${esc(l.id)}">
       <div class="when">${p ? `<span class="y">${p.y}</span><b>${p.m}.${String(p.d).padStart(2, "0")}</b><span class="w">${p.w}</span>` : `<b>--</b>`}</div>
       <div class="what"><div class="who">${esc(l.title || l.artist || "(未入力)")}</div>${l.title && l.artist ? `<div class="ttl">${esc(l.artist)}</div>` : ""}<div class="where">${esc(l.venue || "")}</div></div>
     </button>`;
@@ -328,7 +341,7 @@ function renderStats(){
     if(l.venue) venues[l.venue] = (venues[l.venue] || 0) + 1;
   });
   const sorted = o => Object.entries(o).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"));
-  const list = arr => arr.length ? arr.map(([k, v]) => `<div class="line"><span>${esc(k)}</span><b>${v}回</b></div>`).join("") : `<div class="hint">データなし</div>`;
+  const list = (arr, kind) => arr.length ? arr.map(([k, v]) => `<button type="button" class="line" data-k="${kind}" data-q="${esc(k)}"><span>${esc(k)}</span><b>${v}回 ›</b></button>`).join("") : `<div class="hint">データなし</div>`;
   $("#app").innerHTML = `
     ${filterBar()}
     <div class="stats">
@@ -336,10 +349,11 @@ function renderStats(){
       <div class="card"><b>${spend ? yen(spend) : "-"}</b><small>チケット代合計</small></div>
     </div>
     <div class="seg" role="tablist"><button type="button" role="tab" id="sgA" class="${statTab === "artist" ? "on" : ""}" aria-selected="${statTab === "artist"}">出演者別</button><button type="button" role="tab" id="sgV" class="${statTab === "venue" ? "on" : ""}" aria-selected="${statTab === "venue"}">会場別</button></div>
-    ${statTab === "venue" ? list(sorted(venues)) : list(sorted(artists))}`;
+    ${statTab === "venue" ? list(sorted(venues), "venue") : list(sorted(artists), "artist")}`;
   bindFilter();
   $("#sgA").onclick = () => { statTab = "artist"; renderStats(); };
   $("#sgV").onclick = () => { statTab = "venue"; renderStats(); };
+  document.querySelectorAll("#app .line[data-q]").forEach(b => b.onclick = () => { exact = {kind: b.dataset.k, value: b.dataset.q}; query = ""; setTab("list"); });
 }
 
 function renderSettings(){
@@ -367,7 +381,7 @@ function renderSettings(){
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016b</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016c</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -567,7 +581,7 @@ function openForm(existing){
       </div>
       <label>席種</label><input id="f_seatType" value="${v("seatType")}">
       <label>座席・整理番号</label><input id="f_seat" value="${v("seat")}">
-      <label>チケット代(円)</label><input id="f_price" type="number" inputmode="numeric" value="${v("price")}">
+      <label>チケット代</label><input id="f_price" type="number" inputmode="numeric" value="${v("price")}">
       <label>セットリスト</label><textarea id="f_setlist">${v("setlist")}</textarea>
     </div>
     <button class="btn" id="save">保存</button>
