@@ -32,6 +32,7 @@ main{padding:12px 16px;max-width:640px;margin:0 auto}
 .item{cursor:pointer}
 .item .t{font-weight:600}
 .item .m{color:var(--sub);font-size:13px;margin-top:2px}
+.item .m.v{color:var(--fg)}
 .stats{display:flex;gap:10px;margin-bottom:10px}
 .stats .card{flex:1;text-align:center;margin:0}
 .stats b{display:block;font-size:22px;color:var(--accent)}
@@ -72,6 +73,9 @@ input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:
 .chip input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
 .filters{display:flex;gap:8px;margin-bottom:10px}
 .filters select{flex:1;min-width:0;margin-top:0}
+.seg{display:flex;gap:6px;margin:14px 0 8px}
+.seg button{flex:1;padding:10px 0;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-size:15px}
+.seg button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
 </style>
 </head>
 <body>
@@ -209,7 +213,7 @@ async function extractFromImage(dataUrl){
 let tab = "list";
 let lives = [];
 let query = "";
-let fGenre = "", fYear = "";
+let fGenre = "", fYear = "", statTab = "artist";
 const yearOf = l => (l.date || "").slice(0, 4);
 const filtered = () => lives.filter(l => (!fGenre || genreOf(l) === fGenre) && (!fYear || yearOf(l) === fYear));
 function filterBar(){
@@ -266,7 +270,7 @@ function fillList(){
       <div class="card item" data-id="${l.id}">
         <div class="t">${esc(l.title || l.artist || "(未入力)")}</div>
         ${l.title && l.artist ? `<div class="m">${esc(l.artist)}</div>` : ""}
-        <div class="m">${fmtDate(l.date)}${l.venue ? " ・ " + esc(l.venue) : ""}</div>
+        <div class="m v">${fmtDate(l.date)}${l.venue ? " ・ " + esc(l.venue) : ""}</div>
       </div>`).join("") : `<div class="empty">${lives.length ? "該当なし" : "まだ記録がありません。<br>右下の＋から追加しましょう"}</div>`;
   box.querySelectorAll(".item").forEach(el => el.onclick = () => openDetail(el.dataset.id));
 }
@@ -276,14 +280,12 @@ function renderStats(){
   const fl = filtered();
   const total = fl.length;
   const spend = fl.reduce((s, l) => s + (Number(l.price) || 0), 0);
-  const years = {}, artists = {}, venues = {};
+  const artists = {}, venues = {};
   fl.forEach(l => {
-    const y = (l.date || "").slice(0, 4) || "不明";
-    years[y] = (years[y] || 0) + 1;
     (l.artist || "").split(/[、,，]/).map(x => x.trim()).filter(Boolean).forEach(a => { artists[a] = (artists[a] || 0) + 1; });
     if(l.venue) venues[l.venue] = (venues[l.venue] || 0) + 1;
   });
-  const top = (o, n=5) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n);
+  const sorted = o => Object.entries(o).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"));
   const list = arr => arr.length ? arr.map(([k, v]) => `<div class="card" style="display:flex;justify-content:space-between"><span>${esc(k)}</span><b>${v}回</b></div>`).join("") : `<div class="hint">データなし</div>`;
   $("#app").innerHTML = `
     ${filterBar()}
@@ -291,11 +293,11 @@ function renderStats(){
       <div class="card"><b>${total}</b><small>参加数</small></div>
       <div class="card"><b>${spend ? yen(spend) : "-"}</b><small>チケット代合計</small></div>
     </div>
-    <div class="h2">年別</div>${list(Object.entries(years).sort((a, b) => b[0].localeCompare(a[0])))}
-    <div class="h2">よく参加する出演者</div>${list(top(artists))}
-    <div class="h2">よく行く会場</div>${list(top(venues))}
-  `;
+    <div class="seg" role="tablist"><button type="button" role="tab" id="sgA" class="${statTab === "artist" ? "on" : ""}" aria-selected="${statTab === "artist"}">出演者別</button><button type="button" role="tab" id="sgV" class="${statTab === "venue" ? "on" : ""}" aria-selected="${statTab === "venue"}">会場別</button></div>
+    ${statTab === "venue" ? list(sorted(venues)) : list(sorted(artists))}`;
   bindFilter();
+  $("#sgA").onclick = () => { statTab = "artist"; renderStats(); };
+  $("#sgV").onclick = () => { statTab = "venue"; renderStats(); };
 }
 
 function renderSettings(){
