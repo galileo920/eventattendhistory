@@ -70,6 +70,8 @@ input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:
 .chip span{display:block;text-align:center;white-space:nowrap;padding:10px 0;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);font-size:15px}
 .chip input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
 .chip input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.filters{display:flex;gap:8px;margin-bottom:10px}
+.filters select{flex:1;min-width:0;margin-top:0}
 </style>
 </head>
 <body>
@@ -207,6 +209,18 @@ async function extractFromImage(dataUrl){
 let tab = "list";
 let lives = [];
 let query = "";
+let fGenre = "", fYear = "";
+const yearOf = l => (l.date || "").slice(0, 4);
+const filtered = () => lives.filter(l => (!fGenre || genreOf(l) === fGenre) && (!fYear || yearOf(l) === fYear));
+function filterBar(){
+  const ys = [...new Set(lives.map(yearOf).filter(Boolean).concat(fYear ? [fYear] : []))].sort().reverse();
+  return `<div class="filters"><select id="fg" aria-label="ジャンルで絞り込み"><option value="">ジャンル(すべて)</option>${GENRES.map(g => `<option value="${g}"${fGenre === g ? " selected" : ""}>${g}</option>`).join("")}</select><select id="fy" aria-label="年で絞り込み"><option value="">年(すべて)</option>${ys.map(y => `<option value="${y}"${fYear === y ? " selected" : ""}>${y}年</option>`).join("")}</select></div>`;
+}
+function bindFilter(){
+  $("#fg").onchange = e => { fGenre = e.target.value; render(); };
+  $("#fy").onchange = e => { fYear = e.target.value; render(); };
+}
+
 
 async function refresh(){ lives = await dbAll(); }
 
@@ -228,11 +242,12 @@ function render(){
 function renderList(){
   $("#title").textContent = "イベント参加履歴";
   const q = query.trim().toLowerCase();
-  const rows = lives
+  const rows = filtered()
     .filter(l => !q || FIELDS.some(f => String(l[f] ?? "").toLowerCase().includes(q)))
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   $("#app").innerHTML = `
     <input class="search" id="q" type="search" placeholder="公演名・出演者・会場などで検索" value="${esc(query)}">
+    ${filterBar()}
     ${rows.length ? rows.map(l => `
       <div class="card item" data-id="${l.id}">
         <div class="t">${esc(l.title || l.artist || "(未入力)")}</div>
@@ -240,6 +255,7 @@ function renderList(){
         <div class="m">${fmtDate(l.date)}${l.venue ? " ・ " + esc(l.venue) : ""}</div>
       </div>`).join("") : `<div class="empty">${lives.length ? "該当なし" : "まだ記録がありません。<br>右下の＋から追加しましょう"}</div>`}
   `;
+  bindFilter();
   const qi = $("#q");
   qi.oninput = () => {
     query = qi.value;
@@ -252,10 +268,11 @@ function renderList(){
 
 function renderStats(){
   $("#title").textContent = "集計";
-  const total = lives.length;
-  const spend = lives.reduce((s, l) => s + (Number(l.price) || 0), 0);
+  const fl = filtered();
+  const total = fl.length;
+  const spend = fl.reduce((s, l) => s + (Number(l.price) || 0), 0);
   const years = {}, artists = {}, venues = {};
-  lives.forEach(l => {
+  fl.forEach(l => {
     const y = (l.date || "").slice(0, 4) || "不明";
     years[y] = (years[y] || 0) + 1;
     (l.artist || "").split(/[、,，]/).map(x => x.trim()).filter(Boolean).forEach(a => { artists[a] = (artists[a] || 0) + 1; });
@@ -264,6 +281,7 @@ function renderStats(){
   const top = (o, n=5) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n);
   const list = arr => arr.length ? arr.map(([k, v]) => `<div class="card" style="display:flex;justify-content:space-between"><span>${esc(k)}</span><b>${v}回</b></div>`).join("") : `<div class="hint">データなし</div>`;
   $("#app").innerHTML = `
+    ${filterBar()}
     <div class="stats">
       <div class="card"><b>${total}</b><small>参加数</small></div>
       <div class="card"><b>${spend ? yen(spend) : "-"}</b><small>チケット代合計</small></div>
@@ -272,6 +290,7 @@ function renderStats(){
     <div class="h2">よく参加する出演者</div>${list(top(artists))}
     <div class="h2">よく行く会場</div>${list(top(venues))}
   `;
+  bindFilter();
 }
 
 function renderSettings(){
@@ -367,11 +386,11 @@ function openDetail(id){
       ${l.title && l.artist ? `<div class="m">${esc(l.artist)}</div>` : ""}
       <div class="m">${fmtDate(l.date)}${l.venue ? " ・ " + esc(l.venue) : ""}</div>
     </div>
-    ${row("ジャンル", genreOf(l))}
     ${row("開場 / 開演", [l.open, l.start].filter(Boolean).join(" / "))}
     ${row("席種", l.seatType)}
     ${row("座席・整理番号", l.seat)}
     ${row("チケット代", l.price !== "" && l.price != null ? yen(l.price) : "")}
+    ${row("ジャンル", genreOf(l))}
     ${row("セットリスト", l.setlist)}
     ${l.photo ? `<img class="thumb" src="${l.photo}">` : ""}
     <button class="btn" id="edit">編集</button>
