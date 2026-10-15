@@ -6,10 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="ライブ履歴">
+<meta name="apple-mobile-web-app-title" content="イベント参加履歴">
 <meta name="theme-color" content="#7c3aed">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%237c3aed'/%3E%3Ctext x='90' y='120' font-size='100' text-anchor='middle'%3E🎤%3C/text%3E%3C/svg%3E">
-<title>ライブ履歴</title>
+<title>イベント参加履歴</title>
 <style>
 :root{
   --bg:#f5f3fa;--card:#fff;--fg:#1c1b22;--sub:#6b6a76;--line:#e4e1ee;
@@ -62,7 +62,7 @@ input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:
 </style>
 </head>
 <body>
-<header><h1 id="title">ライブ履歴</h1></header>
+<header><h1 id="title">イベント参加履歴</h1></header>
 <main id="app"></main>
 <button class="fab" id="fab" aria-label="追加">＋</button>
 <nav class="tabs">
@@ -111,9 +111,9 @@ function setSet(o){
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const FIELDS = ["artist","title","venue","date","open","start","seatType","seat","price","setlist"];
+const FIELDS = ["title","artist","venue","date","open","start","seatType","seat","price","setlist"];
 /* 自動入力・貼り付け取り込みの対象(同行者・セットリスト・メモは手入力のみ) */
-const AUTO_FIELDS = ["artist","title","venue","date","open","start","seatType","seat","price"];
+const AUTO_FIELDS = ["title","artist","venue","date","open","start","seatType","seat","price"];
 
 function fmtDate(d){
   if(!d) return "日付未設定";
@@ -148,10 +148,10 @@ async function extractFromImage(dataUrl){
   const {apiKey, model} = getSet();
   if(!apiKey) throw new Error("設定タブでAPIキーを入力してください");
   const b64 = dataUrl.split(",")[1];
-  const prompt = `この画像はライブ・コンサートの紙のチケット、電子チケット(チケットぴあ・イープラス・ローチケ等のアプリ画面のスクリーンショット)、フライヤー、ポスター、または予約画面です。購入者の名前は含めないでください。複数日にまたがる券の場合、dateは初日にしてください。読み取れる情報を次のJSONだけで返してください(説明文やコードブロックは不要)。読み取れない項目は空文字にしてください。推測で埋めないでください。
+  const prompt = `この画像はライブ・コンサートなどのイベントの紙のチケット、電子チケット(チケットぴあ・イープラス・ローチケ等のアプリ画面のスクリーンショット)、フライヤー、ポスター、または予約画面です。購入者の名前は含めないでください。複数日にまたがる券の場合、dateは初日にしてください。読み取れる情報を次のJSONだけで返してください(説明文やコードブロックは不要)。読み取れない項目は空文字にしてください。推測で埋めないでください。
 {
- "artist":"アーティスト/出演者名",
- "title":"公演名・ツアー名",
+ "title":"公演名・イベント名・ツアー名",
+ "artist":"出演者名(複数の場合は「、」で区切る)",
  "date":"開催日 YYYY-MM-DD(年が不明なら ${new Date().getFullYear()} とみなす)",
  "venue":"会場名",
  "open":"開場時刻 HH:MM",
@@ -212,16 +212,17 @@ function render(){
 }
 
 function renderList(){
-  $("#title").textContent = "ライブ履歴";
+  $("#title").textContent = "イベント参加履歴";
   const q = query.trim().toLowerCase();
   const rows = lives
     .filter(l => !q || FIELDS.some(f => String(l[f] ?? "").toLowerCase().includes(q)))
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   $("#app").innerHTML = `
-    <input class="search" id="q" type="search" placeholder="アーティスト・会場などで検索" value="${esc(query)}">
+    <input class="search" id="q" type="search" placeholder="公演名・出演者・会場などで検索" value="${esc(query)}">
     ${rows.length ? rows.map(l => `
       <div class="card item" data-id="${l.id}">
-        <div class="t">${esc(l.artist || "(アーティスト未入力)")}${l.title ? " / " + esc(l.title) : ""}</div>
+        <div class="t">${esc(l.title || l.artist || "(未入力)")}</div>
+        ${l.title && l.artist ? `<div class="m">${esc(l.artist)}</div>` : ""}
         <div class="m">${fmtDate(l.date)}${l.venue ? " ・ " + esc(l.venue) : ""}</div>
       </div>`).join("") : `<div class="empty">${lives.length ? "該当なし" : "まだ記録がありません。<br>右下の＋から追加しましょう"}</div>`}
   `;
@@ -243,7 +244,7 @@ function renderStats(){
   lives.forEach(l => {
     const y = (l.date || "").slice(0, 4) || "不明";
     years[y] = (years[y] || 0) + 1;
-    if(l.artist) artists[l.artist] = (artists[l.artist] || 0) + 1;
+    (l.artist || "").split(/[、,，]/).map(x => x.trim()).filter(Boolean).forEach(a => { artists[a] = (artists[a] || 0) + 1; });
     if(l.venue) venues[l.venue] = (venues[l.venue] || 0) + 1;
   });
   const top = (o, n=5) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n);
@@ -254,7 +255,7 @@ function renderStats(){
       <div class="card"><b>${spend ? yen(spend) : "-"}</b><small>チケット代合計</small></div>
     </div>
     <div class="h2">年別</div>${list(Object.entries(years).sort((a, b) => b[0].localeCompare(a[0])))}
-    <div class="h2">よく行くアーティスト</div>${list(top(artists))}
+    <div class="h2">よく参加する出演者</div>${list(top(artists))}
     <div class="h2">よく行く会場</div>${list(top(venues))}
   `;
 }
@@ -318,7 +319,7 @@ function exportJSON(){
   shareOrDownload(blob, `livelog-${stamp()}.json`);
 }
 function exportCSV(){
-  const cols = ["date","artist","title","venue","open","start","seatType","seat","price","setlist"];
+  const cols = ["date","title","artist","venue","open","start","seatType","seat","price","setlist"];
   const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = [cols.join(",")].concat(lives.slice().sort((a, b) => (a.date || "").localeCompare(b.date || "")).map(l => cols.map(c => q(l[c])).join(",")));
   const blob = new Blob(["\ufeff" + rows.join("\r\n")], {type: "text/csv"});
@@ -348,8 +349,8 @@ function openDetail(id){
   $("#app").innerHTML = `
     <button class="btn sec" id="back" style="margin-top:0">← 戻る</button>
     <div class="card" style="margin-top:12px">
-      <div class="t" style="font-size:18px;font-weight:700">${esc(l.artist || "(未入力)")}</div>
-      <div class="m">${esc(l.title || "")}</div>
+      <div class="t" style="font-size:18px;font-weight:700">${esc(l.title || l.artist || "(未入力)")}</div>
+      ${l.title && l.artist ? `<div class="m">${esc(l.artist)}</div>` : ""}
       <div class="m">${fmtDate(l.date)}${l.venue ? " ・ " + esc(l.venue) : ""}</div>
     </div>
     ${row("開場 / 開演", [l.open, l.start].filter(Boolean).join(" / "))}
@@ -415,8 +416,8 @@ function openForm(existing){
       <div class="hint">複数件のJSON(配列)を貼ると、まとめて保存できます。</div>
     </div>
     <div class="card">
-      <label style="margin-top:0">アーティスト</label><input id="f_artist" value="${v("artist")}">
-      <label>公演名</label><textarea id="f_title" style="min-height:110px">${v("title")}</textarea>
+      <label style="margin-top:0">公演名</label><textarea id="f_title" style="min-height:110px">${v("title")}</textarea>
+      <label>出演者</label><textarea id="f_artist" style="min-height:84px">${v("artist")}</textarea>
       <label>会場</label><input id="f_venue" value="${v("venue")}">
       <label>日付</label><input id="f_date" type="date" value="${v("date")}">
       <div class="row">
@@ -496,7 +497,8 @@ function openForm(existing){
   $("#save").onclick = async () => {
     FIELDS.forEach(k => { l[k] = $("#f_" + k).value.trim(); });
     l.title = l.title.replace(/\s*\n\s*/g, " ");
-    if(!l.artist && !l.title){ alert("アーティストか公演名を入力してください"); return; }
+    l.artist = l.artist.replace(/\s*\n\s*/g, "、");
+    if(!l.artist && !l.title){ alert("公演名か出演者を入力してください"); return; }
     l.price = l.price === "" ? "" : Number(l.price);
     l.updatedAt = Date.now();
     await dbPut(l);
