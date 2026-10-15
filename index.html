@@ -42,7 +42,7 @@ label{display:block;margin-top:12px;font-size:13px;color:var(--sub)}
 .row{display:flex;gap:8px}
 .row>*{flex:1;min-width:0}
 input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;height:46px;display:block}
-.btn{display:block;width:100%;padding:13px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-fg);font-size:16px;font-weight:600;margin-top:14px}
+.btn{display:block;width:100%;padding:13px;font-family:inherit;line-height:1.3;border-radius:12px;border:0;background:var(--accent);color:var(--accent-fg);font-size:16px;font-weight:600;margin-top:14px}
 .btn.sec{background:var(--card);color:var(--fg);border:1px solid var(--line)}
 .btn.danger{background:var(--danger);color:#fff}
 .btn:disabled{opacity:.5}
@@ -309,10 +309,10 @@ function renderSettings(){
     <div class="card">
       <b>バックアップ</b>
       <div class="hint">iOSはブラウザのデータが消えることがあります。定期的に書き出して、ファイルAppやiCloud Driveに保存してください。</div>
-      <button class="btn sec" id="export">JSONを書き出す</button>
-      <label class="btn sec" style="text-align:center;margin-top:10px">JSONを読み込む(追加・上書き)
+      <label class="btn sec" style="text-align:center">JSONを読み込む(追加・上書き)
         <input id="import" type="file" accept="application/json,.json" style="display:none">
       </label>
+      <button class="btn sec" id="export">JSONを書き出す</button>
       <button class="btn sec" id="csv">CSVを書き出す</button>
     </div>
     <div class="card">
