@@ -59,6 +59,10 @@ input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:
 .fab{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-fg);font-size:28px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:7}
 .thumb{width:100%;border-radius:10px;margin-top:8px}
 .search{margin-bottom:10px}
+.prow{display:flex;gap:8px;align-items:center}
+.prow+.prow{margin-top:6px}
+.prow input{margin-top:4px}
+.prow .rm{flex:0 0 44px;height:46px;margin-top:4px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--sub);font-size:20px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -375,6 +379,7 @@ function applyResult(r){
   AUTO_FIELDS.forEach(k => {
     const val = r[k];
     if(val === undefined || val === null || val === "") return;
+    if(k === "artist"){ artistRows(Array.isArray(val) ? val.map(String) : splitArtists(val)); return; }
     const el = $("#f_" + k);
     if(!el) return;
     if(k === "memo" || k === "setlist"){
@@ -388,6 +393,14 @@ function applyResult(r){
 }
 
 /* ========== 入力フォーム ========== */
+const splitArtists = s => String(s || "").split("、").map(x => x.trim()).filter(Boolean);
+const readArtists = () => [...document.querySelectorAll(".f_artist")].map(i => i.value.trim());
+function artistRows(list){
+  const arr = list.length ? list : [""];
+  $("#artists").innerHTML = arr.map((a, i) => `<div class="prow"><input class="f_artist" aria-label="出演者${i + 1}" value="${esc(a)}">${arr.length > 1 ? `<button type="button" class="rm" aria-label="出演者${i + 1}を削除">×</button>` : ""}</div>`).join("");
+  document.querySelectorAll("#artists .rm").forEach((b, i) => b.onclick = () => { const cur = readArtists(); cur.splice(i, 1); artistRows(cur); });
+}
+
 function openForm(existing){
   const l = existing ? {...existing} : {id: uid(), createdAt: Date.now()};
   $("#title").textContent = existing ? "編集" : "新規記録";
@@ -417,7 +430,8 @@ function openForm(existing){
     </div>
     <div class="card">
       <label style="margin-top:0">公演名</label><textarea id="f_title" style="min-height:110px">${v("title")}</textarea>
-      <label>出演者</label><textarea id="f_artist" style="min-height:84px">${v("artist")}</textarea>
+      <label>出演者</label><div id="artists"></div>
+      <button type="button" class="btn sec" id="addArtist" style="margin-top:8px">＋ 出演者を追加</button>
       <label>会場</label><input id="f_venue" value="${v("venue")}">
       <label>日付</label><input id="f_date" type="date" value="${v("date")}">
       <div class="row">
@@ -431,6 +445,8 @@ function openForm(existing){
     </div>
     <button class="btn" id="save">保存</button>
   `;
+  artistRows(splitArtists(l.artist));
+  $("#addArtist").onclick = () => { const cur = readArtists(); cur.push(""); artistRows(cur); const ins = document.querySelectorAll(".f_artist"); ins[ins.length - 1].focus(); };
   $("#cancel").onclick = () => existing ? openDetail(existing.id) : setTab("list");
 
   if(l.photo){ const pv = $("#pv"); pv.src = l.photo; pv.style.display = "block"; }
@@ -495,9 +511,9 @@ function openForm(existing){
   $("#applyTxt").onclick = () => runTxt($("#txt").value);
 
   $("#save").onclick = async () => {
-    FIELDS.forEach(k => { l[k] = $("#f_" + k).value.trim(); });
+    FIELDS.forEach(k => { if(k !== "artist") l[k] = $("#f_" + k).value.trim(); });
     l.title = l.title.replace(/\s*\n\s*/g, " ");
-    l.artist = l.artist.replace(/\s*\n\s*/g, "、");
+    l.artist = readArtists().filter(Boolean).join("、");
     if(!l.artist && !l.title){ alert("公演名か出演者を入力してください"); return; }
     l.price = l.price === "" ? "" : Number(l.price);
     l.updatedAt = Date.now();
