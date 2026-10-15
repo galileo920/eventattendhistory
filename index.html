@@ -64,6 +64,8 @@ input[type=date],input[type=time]{min-width:0;max-width:100%;-webkit-appearance:
 .prow{display:flex;gap:8px;align-items:center}
 .prow+.prow{margin-top:6px}
 .prow input{margin-top:4px}
+.prow .grip{flex:0 0 40px;height:46px;margin-top:4px;border:0;background:none;color:var(--sub);font-size:24px;line-height:1;touch-action:none;-webkit-user-select:none;user-select:none}
+.prow.drag{opacity:.6}
 .prow .rm{flex:0 0 44px;height:46px;margin-top:4px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--sub);font-size:20px;cursor:pointer}
 .chips{display:flex;flex-wrap:nowrap;gap:6px;margin-top:4px}
 .chip{flex:1 1 0;min-width:0}
@@ -433,11 +435,38 @@ function applyResult(r){
 
 /* ========== 入力フォーム ========== */
 const splitArtists = s => String(s || "").split("、").map(x => x.trim()).filter(Boolean);
+/* 並び順: 記号 → 数字 → 英字 → 日本語(読みの情報がないので、日本語は文字コード順) */
+const sortNames = list => {
+  const key = n => { const t = String(n).normalize("NFKC").replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)).trim(), c = t.charAt(0);
+    return [!/[\p{L}\p{N}]/u.test(c) ? 0 : /[0-9]/.test(c) ? 1 : /[A-Za-z]/.test(c) ? 2 : 3, t.toLowerCase()]; };
+  return list.filter(Boolean).map(n => ({n, k: key(n)})).sort((a, b) => a.k[0] - b.k[0] || a.k[1].localeCompare(b.k[1], "ja")).map(o => o.n);
+};
 const readArtists = () => [...document.querySelectorAll(".f_artist")].map(i => i.value.trim());
 function artistRows(list){
   const arr = list.length ? list : [""];
-  $("#artists").innerHTML = arr.map((a, i) => `<div class="prow"><input class="f_artist" aria-label="出演者${i + 1}" value="${esc(a)}">${arr.length > 1 ? `<button type="button" class="rm" aria-label="出演者${i + 1}を削除">×</button>` : ""}</div>`).join("");
+  $("#artists").innerHTML = arr.map((a, i) => `<div class="prow"><input class="f_artist" aria-label="出演者${i + 1}" value="${esc(a)}">${arr.length > 1 ? `<button type="button" class="grip" aria-label="出演者${i + 1}を並べ替え(押したまま上下に動かす)">≡</button><button type="button" class="rm" aria-label="出演者${i + 1}を削除">×</button>` : ""}</div>`).join("");
   document.querySelectorAll("#artists .rm").forEach((b, i) => b.onclick = () => { const cur = readArtists(); cur.splice(i, 1); artistRows(cur); });
+  document.querySelectorAll("#artists .grip").forEach(g => g.onpointerdown = ev => dragArtist(ev, g));
+}
+/* ≡ を押したまま上下に動かして並べ替える(指でもマウスでも動く) */
+function dragArtist(ev, grip){
+  ev.preventDefault();
+  const box = $("#artists"), row = grip.closest(".prow");
+  row.classList.add("drag");
+  try { grip.setPointerCapture(ev.pointerId); } catch(e){}
+  const move = e => {
+    for(const r of box.querySelectorAll(".prow")){
+      if(r === row) continue;
+      const b = r.getBoundingClientRect();
+      if(e.clientY > b.top && e.clientY < b.bottom){ box.insertBefore(row, e.clientY < b.top + b.height / 2 ? r : r.nextSibling); break; }
+    }
+  };
+  const end = () => {
+    grip.removeEventListener("pointermove", move); grip.removeEventListener("pointerup", end); grip.removeEventListener("pointercancel", end);
+    row.classList.remove("drag");
+    artistRows(readArtists());
+  };
+  grip.addEventListener("pointermove", move); grip.addEventListener("pointerup", end); grip.addEventListener("pointercancel", end);
 }
 
 function openForm(existing){
@@ -472,6 +501,7 @@ function openForm(existing){
       <label>公演名</label><textarea id="f_title" style="min-height:110px">${v("title")}</textarea>
       <label>出演者</label><div id="artists"></div>
       <button type="button" class="btn sec" id="addArtist" style="margin-top:8px">＋ 出演者を追加</button>
+      <button type="button" class="btn sec" id="sortArtist" style="margin-top:8px">出演者を並べ替える</button>
       <label>会場</label><input id="f_venue" value="${v("venue")}">
       <label>日付</label><input id="f_date" type="date" value="${v("date")}">
       <div class="row">
@@ -486,6 +516,7 @@ function openForm(existing){
     <button class="btn" id="save">保存</button>
   `;
   artistRows(splitArtists(l.artist));
+  $("#sortArtist").onclick = () => { const r = sortNames(readArtists()); artistRows(r.length ? r : readArtists()); };
   $("#addArtist").onclick = () => { const cur = readArtists(); cur.push(""); artistRows(cur); const ins = document.querySelectorAll(".f_artist"); ins[ins.length - 1].focus(); };
   $("#cancel").onclick = () => existing ? openDetail(existing.id) : setTab("list");
 
