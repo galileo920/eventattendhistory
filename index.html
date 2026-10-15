@@ -241,29 +241,34 @@ function render(){
 
 function renderList(){
   $("#title").textContent = "イベント参加履歴";
+  $("#app").innerHTML = `
+    <input class="search" id="q" type="search" placeholder="公演名・出演者・会場などで検索" value="${esc(query)}">
+    ${filterBar()}
+    <div id="listBody"></div>
+  `;
+  bindFilter();
+  fillList();
+  const qi = $("#q");
+  let comp = false;
+  qi.addEventListener("compositionstart", () => { comp = true; });
+  qi.addEventListener("compositionend", () => { comp = false; query = qi.value; fillList(); });
+  qi.addEventListener("input", () => { if(comp) return; query = qi.value; fillList(); });
+}
+/* 検索欄は作り直さず、結果の部分だけ更新する(日本語入力を妨げないため) */
+function fillList(){
   const q = query.trim().toLowerCase();
   const rows = filtered()
     .filter(l => !q || FIELDS.some(f => String(l[f] ?? "").toLowerCase().includes(q)))
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  $("#app").innerHTML = `
-    <input class="search" id="q" type="search" placeholder="公演名・出演者・会場などで検索" value="${esc(query)}">
-    ${filterBar()}
-    ${rows.length ? rows.map(l => `
+  const box = $("#listBody");
+  if(!box) return;
+  box.innerHTML = rows.length ? rows.map(l => `
       <div class="card item" data-id="${l.id}">
         <div class="t">${esc(l.title || l.artist || "(未入力)")}</div>
         ${l.title && l.artist ? `<div class="m">${esc(l.artist)}</div>` : ""}
         <div class="m">${fmtDate(l.date)}${l.venue ? " ・ " + esc(l.venue) : ""}</div>
-      </div>`).join("") : `<div class="empty">${lives.length ? "該当なし" : "まだ記録がありません。<br>右下の＋から追加しましょう"}</div>`}
-  `;
-  bindFilter();
-  const qi = $("#q");
-  qi.oninput = () => {
-    query = qi.value;
-    const pos = qi.selectionStart;
-    renderList();
-    const n = $("#q"); n.focus(); n.setSelectionRange(pos, pos);
-  };
-  document.querySelectorAll(".item").forEach(el => el.onclick = () => openDetail(el.dataset.id));
+      </div>`).join("") : `<div class="empty">${lives.length ? "該当なし" : "まだ記録がありません。<br>右下の＋から追加しましょう"}</div>`;
+  box.querySelectorAll(".item").forEach(el => el.onclick = () => openDetail(el.dataset.id));
 }
 
 function renderStats(){
