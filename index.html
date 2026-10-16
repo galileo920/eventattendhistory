@@ -282,6 +282,7 @@ async function refresh(){ lives = await dbAll(); const c = $("#count"); if(c) c.
 
 function setTab(t){
   tab = t;
+  window.scrollTo(0, 0);
   document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
   $("#fab").style.display = t === "list" ? "" : "none";
   render();
@@ -387,7 +388,7 @@ function renderSettings(){
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016d</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016e</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -444,6 +445,7 @@ async function importJSON(e){
 function openDetail(id){
   const l = lives.find(x => x.id === id);
   if(!l) return;
+  window.scrollTo(0, 0);
   $("#fab").style.display = "none";
   const row = (k, v) => v ? `<div class="field"><small>${k}</small><div>${esc(v)}</div></div>` : "";
   $("#app").innerHTML = `
@@ -548,6 +550,7 @@ function dragArtist(ev, grip, isTouch){
 }
 
 function openForm(existing){
+  window.scrollTo(0, 0);
   const l = existing ? {...existing} : {id: uid(), createdAt: Date.now()};
   $("#fab").style.display = "none";
   const v = k => esc(l[k] ?? "");
