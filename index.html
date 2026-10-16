@@ -82,6 +82,8 @@ button.line{width:100%;text-align:left;cursor:pointer}
 .stub .who{font-weight:700;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .stub .ttl{font-size:14px;color:var(--sub);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .stub .where{font-size:13px;color:var(--ink);margin-top:2px}
+.yhead{font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.04em;margin:14px 2px 8px}
+.yhead:first-child{margin-top:2px}
 .empty{text-align:center;color:var(--sub);padding:44px 12px}
 .ticket{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
 .ticket .a{font-size:20px;font-weight:700;overflow-wrap:anywhere}
@@ -90,6 +92,8 @@ button.line{width:100%;text-align:left;cursor:pointer}
 .field{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:8px}
 .field small{display:block;color:var(--sub);font-size:12px}
 .field div{white-space:pre-wrap;overflow-wrap:anywhere}
+.field.scroll div{max-height:calc(1.55em * 10);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.field a{color:var(--accent);text-decoration:underline;word-break:break-all}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .card h2{margin:0 0 4px;font-size:15px}
 .hint{font-size:12px;color:var(--sub);margin-top:6px}
@@ -328,9 +332,11 @@ function fillList(){
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const box = $("#listBody");
   if(!box) return;
+  let lastY = null;
   box.innerHTML = rows.length ? rows.map(l => {
-    const p = dateParts(l.date);
-    return `<div class="stub" role="button" tabindex="0" data-g="${esc(genreOf(l))}" data-id="${esc(l.id)}">
+    const p = dateParts(l.date), y = p ? p.y + "年" : "日付未設定";
+    const head = y !== lastY ? `<div class="yhead">${y}</div>` : ""; lastY = y;
+    return head + `<div class="stub" role="button" tabindex="0" data-g="${esc(genreOf(l))}" data-id="${esc(l.id)}">
       <div class="when">${p ? `<span class="y">${p.y}</span><b>${p.m}.${String(p.d).padStart(2, "0")}</b><span class="w">${p.w}</span>` : `<b>--</b>`}</div>
       <div class="what"><div class="who">${esc(l.title || l.artist || "(未入力)")}</div>${l.title && l.artist ? `<div class="ttl">${esc(l.artist)}</div>` : ""}<div class="where">${esc(venueLabel(l))}</div></div>
     </div>`;
@@ -390,7 +396,7 @@ function renderSettings(){
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016g</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016h</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -444,6 +450,14 @@ async function importJSON(e){
 }
 
 /* ========== 詳細 ========== */
+/* 文章の中の http(s) のURLをすべてリンクにする(それ以外の文字はそのまま) */
+function linkify(text){
+  return String(text).split(/(https?:\/\/[^\s<>"'「」]+)/).map((part, i) => {
+    if(i % 2 === 0) return esc(part);
+    const m = /[、。,.)）\]］]+$/.exec(part), tail = m ? m[0] : "", url = tail ? part.slice(0, -tail.length) : part;
+    return `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(url)}</a>${esc(tail)}`;
+  }).join("");
+}
 function openDetail(id){
   const l = lives.find(x => x.id === id);
   if(!l) return;
@@ -456,13 +470,13 @@ function openDetail(id){
       <div class="a">${esc(l.title || l.artist || "(未入力)")}</div>
       <div class="m">${fmtDate(l.date)}${venueLabel(l) ? " ／ " + esc(venueLabel(l)) : ""}</div>
     </div>
-    ${row("出演者", (l.artist || "").split("、").map(x => x.trim()).filter(Boolean).join("\n"))}
+    ${(() => { const a = (l.artist || "").split("、").map(x => x.trim()).filter(Boolean); return a.length > 10 ? `<div class="field scroll"><small>出演者</small><div tabindex="0">${esc(a.join("\n"))}</div></div>` : row("出演者", a.join("\n")); })()}
     ${row("開場 / 開演", [l.open, l.start].filter(Boolean).join(" / "))}
     ${row("席種・券種", l.seatType)}
     ${row("座席・整理番号", l.seat)}
     ${row("チケット代", l.price !== "" && l.price != null ? yen(l.price) : "")}
     ${row("ジャンル", genreOf(l))}
-    ${row("セットリスト", l.setlist)}
+    ${(() => { const t = String(l.setlist || "").trim(); return t ? `<div class="field"><small>詳細</small><div>${linkify(t)}</div></div>` : ""; })()}
     ${l.photo ? `<img class="thumb" src="${l.photo}">` : ""}
     <button class="btn" id="edit">編集</button>
     <button class="btn sec" id="del" style="color:var(--danger)">削除</button>
@@ -595,7 +609,7 @@ function openForm(existing){
       <label>席種・券種</label><input id="f_seatType" value="${v("seatType")}">
       <label>座席・整理番号</label><input id="f_seat" value="${v("seat")}">
       <label>チケット代</label><input id="f_price" type="number" inputmode="numeric" value="${v("price")}">
-      <label>セットリスト</label><textarea id="f_setlist">${v("setlist")}</textarea>
+      <label>詳細</label><textarea id="f_setlist" inputmode="url" autocapitalize="off" autocomplete="off" placeholder="URLを入力(複数のときは改行で区切る)" style="min-height:96px">${v("setlist")}</textarea>
     </div>
     <button class="btn" id="save">保存</button>
   `;
