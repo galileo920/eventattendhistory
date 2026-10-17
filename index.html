@@ -311,7 +311,7 @@ const saveScroll = () => { if(!sub) scrollPos[tab] = curY(); };
 function slideIn(dir){ const a = $("#app"); a.classList.remove("in-l", "in-r"); void a.offsetWidth; a.classList.add(dir === "l" ? "in-l" : "in-r"); }
 /* データ(設定)画面の結果メッセージ。再描画しても残し、別の画面へ移ると消す */
 let dataMsg = null;
-function setDataMsg(cls, text){ dataMsg = {cls, text}; const d = $("#dst"); if(d){ d.className = "status " + cls; d.textContent = text; } }
+function setDataMsg(cls, text, id){ id = id || "#dst"; dataMsg = {cls, text, id}; const d = $(id); if(d){ d.className = "status " + cls; d.textContent = text; } }
 function setTab(t, o = {}){
   if(t !== tab || sub) dataMsg = null;
   saveScroll();
@@ -463,20 +463,21 @@ function renderSettings(){
     <div class="card">
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
+      <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016s</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016t</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
     alert("保存しました");
   };
-  if(dataMsg){ const d = $("#dst"); d.className = "status " + dataMsg.cls; d.textContent = dataMsg.text; }
+  if(dataMsg){ const d = $(dataMsg.id || "#dst"); d.className = "status " + dataMsg.cls; d.textContent = dataMsg.text; }
   $("#export").onclick = exportJSON;
   $("#csv").onclick = exportCSV;
   $("#import").onchange = importJSON;
   $("#wipe").onclick = async () => {
     if(!confirm("全ての記録を削除します。元に戻せません。よろしいですか?")) return;
-    await dbClear(); await refresh(); render(); setDataMsg("ok", "全データを削除しました。");
+    await dbClear(); await refresh(); render(); setDataMsg("ok", "全データを削除しました。", "#wst");
   };
 }
 
