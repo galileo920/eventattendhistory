@@ -69,6 +69,8 @@ label{display:block;margin-top:14px;font-size:13px;color:var(--sub);font-weight:
 .sugg button{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:10px 12px;font:inherit;cursor:pointer}
 .sugg button:first-child{border-top:0}
 .sugg small{color:var(--sub);margin-left:6px}
+/* Safari(ブラウザ表示)でスクロール中に下側が描画されなくなることへの対策 */
+.bar,.tabbar,.fab{-webkit-transform:translateZ(0);transform:translateZ(0);-webkit-backface-visibility:hidden;backface-visibility:hidden}
 .row3{display:grid;grid-template-columns:1.45fr 1fr 1fr;gap:8px}
 .row3>div{min-width:0}
 .row3 input[type=date],.row3 input[type=time]{padding-left:4px;padding-right:4px;text-align:center;font-size:15px}
@@ -459,7 +461,7 @@ function renderSettings(){
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016l</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016m</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
