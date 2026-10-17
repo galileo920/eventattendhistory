@@ -63,6 +63,12 @@ input,textarea{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--l
 input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;height:46px;display:block;max-width:100%}
 textarea{resize:vertical;min-height:84px}
 label{display:block;margin-top:14px;font-size:13px;color:var(--sub);font-weight:500}
+.sortrow{display:flex;justify-content:flex-end;margin:-2px 0 4px}
+.sortrow button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:500;cursor:pointer}
+.sugg{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:4px;overflow:hidden}
+.sugg button{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:10px 12px;font:inherit;cursor:pointer}
+.sugg button:first-child{border-top:0}
+.sugg small{color:var(--sub);margin-left:6px}
 .row3{display:grid;grid-template-columns:1.45fr 1fr 1fr;gap:8px}
 .row3>div{min-width:0}
 .row3 input[type=date],.row3 input[type=time]{padding-left:4px;padding-right:4px;text-align:center;font-size:15px}
@@ -280,6 +286,8 @@ async function extractFromImage(dataUrl){
 let tab = "list";
 let lives = [];
 let query = "", exact = null;
+let sortAsc = false;
+try { sortAsc = localStorage.getItem("livelog_sort") === "asc"; } catch(e){}
 let fGenre = "", fYear = "", statTab = "artist";
 const yearOf = l => (l.date || "").slice(0, 4);
 const filtered = () => lives.filter(l => (!fGenre || genreOf(l) === fGenre) && (!fYear || yearOf(l) === fYear));
@@ -362,10 +370,12 @@ function renderList(){
   $("#app").innerHTML = `
     <input class="search" id="q" type="search" placeholder="公演名・出演者・会場などで検索" value="${esc(query)}">
     ${filterBar()}
+    <div class="sortrow"><button type="button" id="sortToggle" aria-label="並び順を切り替え">${sortAsc ? "古い順" : "新しい順"} ⇅</button></div>
     ${exact ? `<div class="exact"><span>${exact.kind === "venue" ? "会場" : exact.kind === "pref" ? "都道府県" : "出演者"}「${esc(exact.value)}」と完全一致</span><button type="button" id="exOff">解除</button></div>` : ""}
     <div id="listBody"></div>
   `;
   bindFilter();
+  $("#sortToggle").onclick = e => { sortAsc = !sortAsc; try { localStorage.setItem("livelog_sort", sortAsc ? "asc" : "desc"); } catch(err){} e.currentTarget.textContent = (sortAsc ? "古い順" : "新しい順") + " ⇅"; fillList(); };
   if(exact) $("#exOff").onclick = () => { exact = null; renderList(); };
   fillList();
   const qi = $("#q");
@@ -380,7 +390,7 @@ function fillList(){
   const rows = filtered()
     .filter(l => !exact || (exact.kind === "venue" ? l.venue === exact.value : exact.kind === "pref" ? l.pref === exact.value : (l.artist || "").split(/[、,，]/).map(x => x.trim()).includes(exact.value)))
     .filter(l => !q || ["title","artist","venue"].some(f => String(l[f] ?? "").toLowerCase().includes(q)))
-    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    .sort((a, b) => { const x = a.date || "", y = b.date || ""; if(!x || !y) return (x ? 0 : 1) - (y ? 0 : 1); return sortAsc ? x.localeCompare(y) : y.localeCompare(x); });
   const box = $("#listBody");
   if(!box) return;
   let lastY = null;
@@ -399,7 +409,8 @@ function renderStats(){
   const fl = filtered();
   const total = fl.length;
   const spend = fl.reduce((s, l) => s + (Number(l.price) || 0), 0);
-  const artists = {}, venues = {}, prefs = {};
+  const artists = {}, venues = {}, prefs = {}, years = {};
+  lives.filter(l => !fGenre || genreOf(l) === fGenre).forEach(l => { const y = yearOf(l); if(!y) return; const o = years[y] || (years[y] = {n: 0, spend: 0}); o.n++; o.spend += Number(l.price) || 0; });
   fl.forEach(l => {
     (l.artist || "").split(/[、,，]/).map(x => x.trim()).filter(Boolean).forEach(a => { artists[a] = (artists[a] || 0) + 1; });
     if(l.venue) venues[l.venue] = (venues[l.venue] || 0) + 1;
@@ -413,19 +424,20 @@ function renderStats(){
       <div class="card"><b>${total}</b><small>参加数</small></div>
       <div class="card"><b>${spend ? yen(spend) : "-"}</b><small>チケット代合計</small></div>
     </div>
-    <div class="seg" role="tablist"><button type="button" role="tab" id="sgA" class="${statTab === "artist" ? "on" : ""}" aria-selected="${statTab === "artist"}">出演者別</button><button type="button" role="tab" id="sgV" class="${statTab === "venue" ? "on" : ""}" aria-selected="${statTab === "venue"}">会場別</button><button type="button" role="tab" id="sgP" class="${statTab === "pref" ? "on" : ""}" aria-selected="${statTab === "pref"}">都道府県別</button></div>
-    ${statTab === "venue" ? list(sorted(venues), "venue") : statTab === "pref" ? list(Object.entries(prefs).sort((a, b) => b[1] - a[1] || PREFS.indexOf(a[0]) - PREFS.indexOf(b[0])), "pref") : list(sorted(artists), "artist")}`;
+    <div class="seg" role="tablist"><button type="button" role="tab" id="sgA" class="${statTab === "artist" ? "on" : ""}" aria-selected="${statTab === "artist"}">出演者別</button><button type="button" role="tab" id="sgV" class="${statTab === "venue" ? "on" : ""}" aria-selected="${statTab === "venue"}">会場別</button><button type="button" role="tab" id="sgP" class="${statTab === "pref" ? "on" : ""}" aria-selected="${statTab === "pref"}">都道府県別</button><button type="button" role="tab" id="sgY" class="${statTab === "year" ? "on" : ""}" aria-selected="${statTab === "year"}">年別</button></div>
+    ${statTab === "venue" ? list(sorted(venues), "venue") : statTab === "year" ? (Object.keys(years).length ? Object.keys(years).sort().reverse().map(y => `<button type="button" class="line" data-k="year" data-q="${y}"><span>${y}年</span><b>${years[y].n}回${years[y].spend ? " ・ " + yen(years[y].spend) : ""} ›</b></button>`).join("") : `<div class="hint">データなし</div>`) : statTab === "pref" ? list(Object.entries(prefs).sort((a, b) => b[1] - a[1] || PREFS.indexOf(a[0]) - PREFS.indexOf(b[0])), "pref") : list(sorted(artists), "artist")}`;
   bindFilter();
   $("#sgA").onclick = () => { statTab = "artist"; renderStats(); };
   $("#sgV").onclick = () => { statTab = "venue"; renderStats(); };
   $("#sgP").onclick = () => { statTab = "pref"; renderStats(); };
-  document.querySelectorAll("#app .line[data-q]").forEach(b => b.onclick = () => { exact = {kind: b.dataset.k, value: b.dataset.q}; query = ""; setTab("list", {top: true}); });
+  $("#sgY").onclick = () => { statTab = "year"; renderStats(); };
+  document.querySelectorAll("#app .line[data-q]").forEach(b => b.onclick = () => { if(b.dataset.k === "year"){ fYear = b.dataset.q; exact = null; } else exact = {kind: b.dataset.k, value: b.dataset.q}; query = ""; setTab("list", {top: true}); });
 }
 
 function renderSettings(){
   const s = getSet();
   $("#app").innerHTML = `
-    <div class="card">
+    <div class="card" hidden><!-- 当面使わないため非表示(再表示するには hidden を外す) -->
       <h2>Claude API</h2>
       <label>APIキー</label>
       <input id="key" type="password" autocomplete="off" placeholder="sk-ant-..." value="${esc(s.apiKey || "")}">
@@ -447,7 +459,7 @@ function renderSettings(){
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016j</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016k</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -569,6 +581,32 @@ const sortNames = list => {
     return [!/[\p{L}\p{N}]/u.test(c) ? 0 : /[0-9]/.test(c) ? 1 : /[A-Za-z]/.test(c) ? 2 : 3, t.toLowerCase()]; };
   return list.filter(Boolean).map(n => ({n, k: key(n)})).sort((a, b) => a.k[0] - b.k[0] || a.k[1].localeCompare(b.k[1], "ja")).map(o => o.n);
 };
+const kata2hira = s => String(s || "").replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+/* 登録済みの出演者名・会場名から、入力途中の文字(前方一致)に合う候補を出す */
+function regCands(kind, typed, skipNames){
+  const norm = x => kata2hira(String(x)).toLowerCase().replace(/\s+/g, "");
+  const t = norm(typed);
+  if(!t) return [];
+  const m = new Map();
+  lives.forEach(l => {
+    const names = kind === "venue" ? (l.venue ? [l.venue] : []) : (l.artist || "").split(/[、,，]/).map(x => x.trim()).filter(Boolean);
+    names.forEach(n => { const o = m.get(n) || {name: n, n: 0, pref: ""}; o.n++; if(kind === "venue" && l.pref) o.pref = l.pref; m.set(n, o); });
+  });
+  return [...m.values()].filter(o => o.name !== typed.trim() && !(skipNames || []).includes(o.name) && norm(o.name).startsWith(t))
+    .sort((a, b) => b.n - a.n).slice(0, 6);
+}
+function showSugg(input, cands, onPick){
+  document.querySelectorAll(".sugg").forEach(e => e.remove());
+  if(!cands.length) return;
+  const box = document.createElement("div");
+  box.className = "sugg";
+  box.innerHTML = cands.map((c, i) => `<button type="button" data-i="${i}">${esc(c.name)}${c.pref ? `<small>${esc(c.pref)}</small>` : ""}</button>`).join("");
+  box.addEventListener("pointerdown", e => e.preventDefault());
+  box.addEventListener("mousedown", e => e.preventDefault());
+  box.addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; e.preventDefault(); e.stopPropagation(); input.blur(); onPick(cands[Number(b.dataset.i)]); box.remove(); });
+  (input.closest(".prow") || input).after(box);
+}
+const hideSugg = () => document.querySelectorAll(".sugg").forEach(e => e.remove());
 const readArtists = () => [...document.querySelectorAll(".f_artist")].map(i => i.value.trim());
 function artistRows(list){
   const arr = (list.length ? list : [""]).map(x => typeof x === "string" ? {name: x} : x);
@@ -625,7 +663,7 @@ function openForm(existing){
   const v = k => esc(l[k] ?? "");
   $("#app").innerHTML = `
     <button class="btn sec" id="cancel" style="margin-top:0">← キャンセル</button>
-    <div class="card" style="margin-top:12px">
+    <div class="card" style="margin-top:12px" hidden><!-- 当面使わないため非表示 -->
       <h2>画像から自動入力</h2>
       <div class="scan">
         <label class="btn sec">撮影<input id="cam" type="file" accept="image/*" capture="environment"></label>
@@ -667,6 +705,12 @@ function openForm(existing){
     <button class="btn" id="save">保存</button>
   `;
   artistRows(splitArtists(l.artist));
+  const fillPref = v => { const sel = $("#f_pref"); if(!sel || sel.value) return; const k = lives.find(z => z.venue === v && z.pref); if(k) sel.value = k.pref; };
+  $("#f_venue").addEventListener("change", e => fillPref(e.target.value.trim()));
+  $("#f_venue").addEventListener("input", e => showSugg(e.target, regCands("venue", e.target.value), c => { e.target.value = c.name; if(c.pref){ const sel = $("#f_pref"); if(sel && !sel.value) sel.value = c.pref; } }));
+  $("#f_venue").addEventListener("blur", () => setTimeout(hideSugg, 200));
+  $("#artists").addEventListener("input", e => { const t = e.target; if(!t.classList.contains("f_artist")) return; showSugg(t, regCands("artist", t.value, readArtists().filter((n, i) => n && t !== document.querySelectorAll(".f_artist")[i])), c => { t.value = c.name; }); });
+  $("#artists").addEventListener("focusout", () => setTimeout(hideSugg, 200));
   $("#sortArtist").onclick = () => {
     const cur = readArtists().filter(Boolean), sst = $("#stSort");
     if(cur.length < 2){ sst.className = "status err"; sst.textContent = "並べ替える出演者が2人以上必要です。"; return; }
