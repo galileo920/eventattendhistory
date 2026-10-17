@@ -459,7 +459,7 @@ function renderSettings(){
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016o</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016p</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -673,7 +673,7 @@ function openForm(existing){
       <div id="st" class="status"></div>
       <div class="hint">チケット・フライヤー・予約画面のスクリーンショットなど。読み取り結果は下のフォームに入るので、確認・修正してから保存してください。</div>
     </div>
-    <div class="card">
+    <div class="card" style="margin-top:12px">
       <label style="margin-top:0">ジャンル</label><div class="chips" role="radiogroup" aria-label="ジャンル">${GENRES.map(g => `<label class="chip"><input type="radio" name="genre" value="${g}"${genreOf(l) === g ? " checked" : ""}><span>${g}</span></label>`).join("")}</div>
       <label>公演名</label><textarea id="f_title" style="min-height:110px">${v("title")}</textarea>
       <label>出演者</label><div id="artists"></div>
@@ -708,7 +708,7 @@ function openForm(existing){
     sst.className = "status ok"; sst.textContent = "記号→数字→英字→日本語の順に並べ替えました。";
   };
   $("#addArtist").onclick = () => { const cur = readArtists(); cur.push(""); artistRows(cur); const ins = document.querySelectorAll(".f_artist"); ins[ins.length - 1].focus(); };
-  $("#cancel").onclick = () => existing ? openDetail(existing.id) : setTab("list");
+  $("#cancel").onclick = () => { if(!confirm("入力中の内容は保存されません。戻りますか?")) return; existing ? openDetail(existing.id) : setTab("list"); };
 
   if(l.photo){ const pv = $("#pv"); pv.src = l.photo; pv.style.display = "block"; }
 
