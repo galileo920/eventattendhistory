@@ -459,7 +459,7 @@ function renderSettings(){
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016p</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016q</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -529,8 +529,7 @@ function openDetail(id){
   $("#fab").style.display = "";
   const row = (k, v) => v ? `<div class="field"><small>${k}</small><div>${esc(v)}</div></div>` : "";
   $("#app").innerHTML = `
-    <button class="btn sec" id="back" style="margin-top:0">← 履歴へ戻る</button>
-    <div class="ticket" style="margin-top:12px">
+    <div class="ticket">
       <div class="a">${esc(l.title || l.artist || "(未入力)")}</div>
       <div class="m">${fmtDate(l.date)}${venueLabel(l) ? " ／ " + esc(venueLabel(l)) : ""}</div>
     </div>
@@ -544,6 +543,7 @@ function openDetail(id){
     ${l.photo ? `<img class="thumb" src="${l.photo}">` : ""}
     <button class="btn" id="edit">編集</button>
     <button class="btn sec" id="del" style="color:var(--danger)">削除</button>
+    <button class="btn sec" id="back">履歴へ戻る</button>
   `;
   $("#back").onclick = () => setTab("list");
   $("#edit").onclick = () => openForm(l);
@@ -662,7 +662,6 @@ function openForm(existing){
   $("#fab").style.display = "none";
   const v = k => esc(l[k] ?? "");
   $("#app").innerHTML = `
-    <button class="btn sec" id="cancel" style="margin-top:0">← キャンセル</button>
     <div class="card" style="margin-top:12px" hidden><!-- 当面使わないため非表示 -->
       <h2>画像から自動入力</h2>
       <div class="scan">
@@ -673,7 +672,7 @@ function openForm(existing){
       <div id="st" class="status"></div>
       <div class="hint">チケット・フライヤー・予約画面のスクリーンショットなど。読み取り結果は下のフォームに入るので、確認・修正してから保存してください。</div>
     </div>
-    <div class="card" style="margin-top:12px">
+    <div class="card">
       <label style="margin-top:0">ジャンル</label><div class="chips" role="radiogroup" aria-label="ジャンル">${GENRES.map(g => `<label class="chip"><input type="radio" name="genre" value="${g}"${genreOf(l) === g ? " checked" : ""}><span>${g}</span></label>`).join("")}</div>
       <label>公演名</label><textarea id="f_title" style="min-height:110px">${v("title")}</textarea>
       <label>出演者</label><div id="artists"></div>
@@ -693,6 +692,7 @@ function openForm(existing){
       <label>詳細</label><textarea id="f_setlist" inputmode="url" autocapitalize="off" autocomplete="off" placeholder="URLを入力(複数のときは改行で区切る)" style="min-height:96px">${v("setlist")}</textarea>
     </div>
     <button class="btn" id="save">保存</button>
+    <button class="btn sec" id="cancel">キャンセル</button>
   `;
   artistRows(splitArtists(l.artist));
   const fillPref = v => { const sel = $("#f_pref"); if(!sel || sel.value) return; const k = lives.find(z => z.venue === v && z.pref); if(k) sel.value = k.pref; };
