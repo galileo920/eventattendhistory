@@ -459,7 +459,7 @@ function renderSettings(){
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016k</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016l</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -674,16 +674,6 @@ function openForm(existing){
       <div class="hint">チケット・フライヤー・予約画面のスクリーンショットなど。読み取り結果は下のフォームに入るので、確認・修正してから保存してください。</div>
     </div>
     <div class="card">
-      <h2>チャットで読み取った結果を貼り付け</h2>
-      <textarea id="txt" placeholder="Claudeが返したJSONを貼り付け" style="min-height:70px"></textarea>
-      <div class="row">
-        <button class="btn sec" id="paste" style="margin-top:8px">クリップボードから貼付</button>
-        <button class="btn" id="applyTxt" style="margin-top:8px">反映</button>
-      </div>
-      <div id="st2" class="status"></div>
-      <div class="hint">複数件のJSON(配列)を貼ると、まとめて保存できます。</div>
-    </div>
-    <div class="card">
       <label style="margin-top:0">ジャンル</label><div class="chips" role="radiogroup" aria-label="ジャンル">${GENRES.map(g => `<label class="chip"><input type="radio" name="genre" value="${g}"${genreOf(l) === g ? " checked" : ""}><span>${g}</span></label>`).join("")}</div>
       <label>公演名</label><textarea id="f_title" style="min-height:110px">${v("title")}</textarea>
       <label>出演者</label><div id="artists"></div>
@@ -743,45 +733,6 @@ function openForm(existing){
   $("#cam").onchange = handle;
   $("#pick").onchange = handle;
 
-  const runTxt = async text => {
-    const st2 = $("#st2");
-    try {
-      const m = /[\[{][\s\S]*[\]}]/.exec(text || "");
-      if(!m) throw new Error("JSONが見つかりません");
-      let j = JSON.parse(m[0]);
-      if(Array.isArray(j) && j.length > 1){
-        if(!confirm(`${j.length}件をまとめて保存しますか?`)) return;
-        for(const r of j){
-          const o = {id: uid(), createdAt: Date.now(), updatedAt: Date.now()};
-          AUTO_FIELDS.forEach(k => { o[k] = r[k] ?? ""; });
-          o.pref = normPref(o.pref);
-          o.genre = o.genre === "ライブ" ? "音楽" : o.genre === "演劇" ? "舞台" : GENRES.includes(o.genre) ? o.genre : "音楽";
-          const p = Number(String(o.price).replace(/[^\d]/g, ""));
-          o.price = o.price === "" ? "" : (p || "");
-          await dbPut(o);
-        }
-        await refresh(); setTab("list");
-        return;
-      }
-      if(Array.isArray(j)) j = j[0];
-      if(!j || typeof j !== "object") throw new Error("形式が正しくありません");
-      applyResult(j);
-      st2.className = "status ok"; st2.textContent = "反映しました。内容を確認して保存してください。";
-    } catch(err){
-      st2.className = "status err"; st2.textContent = "取り込めませんでした: " + err.message;
-    }
-  };
-  $("#paste").onclick = async () => {
-    try {
-      const t = await navigator.clipboard.readText();
-      $("#txt").value = t;
-      await runTxt(t);
-    } catch(e){
-      $("#st2").className = "status err";
-      $("#st2").textContent = "貼り付けできませんでした。枠を長押しして貼り付けてから「反映」を押してください。";
-    }
-  };
-  $("#applyTxt").onclick = () => runTxt($("#txt").value);
 
   $("#save").onclick = async () => {
     FIELDS.forEach(k => { if(k !== "artist" && k !== "genre") l[k] = $("#f_" + k).value.trim(); });
