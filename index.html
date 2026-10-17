@@ -309,7 +309,11 @@ let sub = false; /* 詳細・登録画面を開いているか */
 const curY = () => window.scrollY || document.documentElement.scrollTop || 0;
 const saveScroll = () => { if(!sub) scrollPos[tab] = curY(); };
 function slideIn(dir){ const a = $("#app"); a.classList.remove("in-l", "in-r"); void a.offsetWidth; a.classList.add(dir === "l" ? "in-l" : "in-r"); }
+/* データ(設定)画面の結果メッセージ。再描画しても残し、別の画面へ移ると消す */
+let dataMsg = null;
+function setDataMsg(cls, text){ dataMsg = {cls, text}; const d = $("#dst"); if(d){ d.className = "status " + cls; d.textContent = text; } }
 function setTab(t, o = {}){
+  if(t !== tab || sub) dataMsg = null;
   saveScroll();
   sub = false;
   tab = t;
@@ -454,23 +458,25 @@ function renderSettings(){
       </label>
       <button class="btn sec" id="export">JSONを書き出す</button>
       <button class="btn sec" id="csv">CSVを書き出す</button>
+      <div class="status" id="dst"></div>
     </div>
     <div class="card">
       <h2>データ削除</h2>
       <button class="btn danger" id="wipe">全データを削除</button>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016r</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016s</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
     alert("保存しました");
   };
+  if(dataMsg){ const d = $("#dst"); d.className = "status " + dataMsg.cls; d.textContent = dataMsg.text; }
   $("#export").onclick = exportJSON;
   $("#csv").onclick = exportCSV;
   $("#import").onchange = importJSON;
   $("#wipe").onclick = async () => {
     if(!confirm("全ての記録を削除します。元に戻せません。よろしいですか?")) return;
-    await dbClear(); await refresh(); render(); showToast("全データを削除しました");
+    await dbClear(); await refresh(); render(); setDataMsg("ok", "全データを削除しました。");
   };
 }
 
@@ -490,14 +496,14 @@ async function shareOrDownload(blob, name){
 function stamp(){ return new Date().toISOString().slice(0, 10); }
 async function exportJSON(){
   const blob = new Blob([JSON.stringify({version: 1, lives}, null, 1)], {type: "application/json"});
-  if(await shareOrDownload(blob, `livelog-${stamp()}.json`)) showToast(`${lives.length}件をJSONで書き出しました`);
+  if(await shareOrDownload(blob, `livelog-${stamp()}.json`)) setDataMsg("ok", `${lives.length}件をJSONで書き出しました。`);
 }
 async function exportCSV(){
   const cols = ["date","genre","title","artist","venue","pref","open","start","seatType","seat","price","setlist"];
   const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = [cols.join(",")].concat(lives.slice().sort((a, b) => (a.date || "").localeCompare(b.date || "")).map(l => cols.map(c => q(c === "genre" ? genreOf(l) : l[c])).join(",")));
   const blob = new Blob(["\ufeff" + rows.join("\r\n")], {type: "text/csv"});
-  if(await shareOrDownload(blob, `livelog-${stamp()}.csv`)) showToast(`${lives.length}件をCSVで書き出しました`);
+  if(await shareOrDownload(blob, `livelog-${stamp()}.csv`)) setDataMsg("ok", `${lives.length}件をCSVで書き出しました。`);
 }
 async function importJSON(e){
   const f = e.target.files[0];
@@ -508,8 +514,8 @@ async function importJSON(e){
     if(!Array.isArray(arr)) throw new Error("形式が正しくありません");
     for(const l of arr){ if(l && l.id) await dbPut(l); }
     await refresh(); render();
-    showToast(`${arr.length}件を読み込みました`);
-  } catch(err){ showToast("読み込めませんでした。ファイルを確認してください"); }
+    setDataMsg("ok", `${arr.length}件を読み込みました。`);
+  } catch(err){ setDataMsg("err", "読み込めませんでした。ファイルを確認してください。"); }
   e.target.value = "";
 }
 
