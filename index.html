@@ -496,7 +496,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016B</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016C</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -581,15 +581,10 @@ function openDetail(id){
     ${(() => { const t = String(l.setlist || "").trim(); return t ? `<div class="field"><small>詳細</small><div>${linkify(t)}</div></div>` : ""; })()}
     ${l.photo ? `<img class="thumb" src="${l.photo}">` : ""}
     <button class="btn" id="edit">編集</button>
-    <button class="btn sec" id="del" style="color:var(--danger)">削除</button>
     <button class="btn sec" id="back">履歴へ戻る</button>
   `;
   $("#back").onclick = () => setTab("list");
   $("#edit").onclick = () => openForm(l);
-  $("#del").onclick = async () => {
-    if(!confirm("この記録を削除しますか?")) return;
-    await dbDel(l.id); await refresh(); setTab("list");
-  };
 }
 
 /* 抽出結果(オブジェクト)をフォームに反映 */
@@ -735,6 +730,7 @@ function openForm(existing){
     </div>
     <button class="btn" id="save">保存</button>
     <button class="btn sec" id="cancel">キャンセル</button>
+    ${existing ? `<button class="btn danger" id="del">削除</button>` : ""}
   `;
   artistRows(splitArtists(l.artist));
   const fillPref = v => { const sel = $("#f_pref"); if(!sel || sel.value) return; const k = lives.find(z => z.venue === v && z.pref); if(k) sel.value = k.pref; };
@@ -750,6 +746,10 @@ function openForm(existing){
     sst.className = "status ok"; sst.textContent = "記号→数字→英字→日本語の順に並べ替えました。";
   };
   $("#addArtist").onclick = () => { const cur = readArtists(); cur.push(""); artistRows(cur); const ins = document.querySelectorAll(".f_artist"); ins[ins.length - 1].focus(); };
+  if(existing) $("#del").onclick = async () => {
+    if(!confirm("この記録を削除しますか?")) return;
+    await dbDel(existing.id); await refresh(); setTab("list");
+  };
   $("#cancel").onclick = () => { if(!confirm("入力中の内容は保存されません。戻りますか?")) return; existing ? openDetail(existing.id) : setTab("list"); };
 
   if(l.photo){ const pv = $("#pv"); pv.src = l.photo; pv.style.display = "block"; }
