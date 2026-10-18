@@ -468,7 +468,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016u</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016v</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -696,9 +696,9 @@ function openForm(existing){
       <label>会場</label><input id="f_venue" value="${v("venue")}">
       <label>会場(都道府県)</label><select id="f_pref"><option value="">未選択</option>${PREFS.map(x => `<option value="${x}"${l.pref === x ? " selected" : ""}>${x}</option>`).join("")}</select>
       <div class="row3">
-        <div><div class="lh"><label>日付</label><button type="button" class="clr" data-clr="f_date">消す</button></div><input id="f_date" type="date" value="${v("date")}"></div>
-        <div><div class="lh"><label>開場</label><button type="button" class="clr" data-clr="f_open">消す</button></div><input id="f_open" type="time" value="${v("open")}"></div>
-        <div><div class="lh"><label>開演</label><button type="button" class="clr" data-clr="f_start">消す</button></div><input id="f_start" type="time" value="${v("start")}"></div>
+        <div><div class="lh"><label>日付</label><button type="button" class="clr" data-clr="f_date">クリア</button></div><input id="f_date" type="date" value="${v("date")}"></div>
+        <div><div class="lh"><label>開場</label><button type="button" class="clr" data-clr="f_open">クリア</button></div><input id="f_open" type="time" value="${v("open")}"></div>
+        <div><div class="lh"><label>開演</label><button type="button" class="clr" data-clr="f_start">クリア</button></div><input id="f_start" type="time" value="${v("start")}"></div>
       </div>
       <label>席種・券種</label><input id="f_seatType" value="${v("seatType")}">
       <label>座席・整理番号</label><input id="f_seat" value="${v("seat")}">
