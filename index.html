@@ -6,10 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="イベント参加履歴">
+<meta name="apple-mobile-web-app-title" content="イベント参加記録">
 <meta name="theme-color" content="#1f2330">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%231f2330'/%3E%3Ctext x='90' y='120' font-size='100' text-anchor='middle'%3E🎤%3C/text%3E%3C/svg%3E">
-<title>イベント参加履歴</title>
+<title>イベント参加記録</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>
 
@@ -168,12 +168,12 @@ select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:1
 </style>
 </head>
 <body>
-<div class="bar"><div class="bar-in"><h1>イベント参加履歴</h1></div></div>
+<div class="bar"><div class="bar-in"><h1>イベント参加記録</h1></div></div>
 <main id="app"></main>
 <button class="fab" id="fab" aria-label="イベントを追加"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg></button>
 <div class="toast" id="toast" hidden></div>
 <nav class="tabbar"><div class="tabbar-in">
-  <button data-tab="list" class="on">履歴</button>
+  <button data-tab="list" class="on">一覧</button>
   <button data-tab="stats">集計</button>
   <button data-tab="settings">設定</button>
 </div></nav>
@@ -507,7 +507,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016F</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016G</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
