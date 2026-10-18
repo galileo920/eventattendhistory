@@ -17,7 +17,7 @@
   --card:var(--surface); --fg:var(--ink); --accent-fg:var(--accent-ink);
   --bg:#edeff4; --surface:#ffffff; --ink:#15171f; --sub:#5e6372; --line:#d9dce6;
   --accent:#d93a6b; --accent-ink:#ffffff; --accent-soft:#fbe3ea; --ok:#15803d; --danger:#c62828;
-  --g-owarai:#d9730d; --g-butai:#7c4dcc; --g-talk:#0f8a8a; --g-sports:#3f8f1f; --g-exhibit:#2f6fd0;
+  --g-owarai:#d9730d; --g-butai:#7c4dcc; --g-talk:#0f8a8a; --g-sports:#3f8f1f; --g-exhibit:#2f6fd0; --g-other:#6b7280; --g-music:#d93a6b;
   --font-body:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif;
   --font-mono:var(--font-body);
   --gutter-l:max(16px,env(safe-area-inset-left,0px)); --gutter-r:max(16px,env(safe-area-inset-right,0px));
@@ -26,14 +26,14 @@
   :root:not([data-theme="light"]){
     --bg:#0f1118; --surface:#181b25; --ink:#eef0f7; --sub:#9aa1b5; --line:#2a2f3e;
     --accent:#f0668f; --accent-ink:#1a0a10; --accent-soft:#34202a; --ok:#4ade80; --danger:#f87171;
-    --g-owarai:#f5a04a; --g-butai:#b79af0; --g-talk:#4cc9c9; --g-sports:#86d65a; --g-exhibit:#7aaaf5;
+    --g-owarai:#f5a04a; --g-butai:#b79af0; --g-talk:#4cc9c9; --g-sports:#86d65a; --g-exhibit:#7aaaf5; --g-other:#9aa1b5; --g-music:#f0668f;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0f1118; --surface:#181b25; --ink:#eef0f7; --sub:#9aa1b5; --line:#2a2f3e;
   --accent:#f0668f; --accent-ink:#1a0a10; --accent-soft:#34202a; --ok:#4ade80; --danger:#f87171;
-    --g-owarai:#f5a04a; --g-butai:#b79af0; --g-talk:#4cc9c9; --g-sports:#86d65a; --g-exhibit:#7aaaf5;
+    --g-owarai:#f5a04a; --g-butai:#b79af0; --g-talk:#4cc9c9; --g-sports:#86d65a; --g-exhibit:#7aaaf5; --g-other:#9aa1b5; --g-music:#f0668f;
   color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -58,12 +58,18 @@ main{max-width:560px;margin:0 auto;padding-block:14px 150px;padding-left:var(--g
 .search{margin-bottom:12px}
 [hidden]{display:none!important}
 .filters{display:flex;gap:8px;margin-bottom:10px}
-.filters select{flex:1;min-width:0;margin-top:0}
+.filters select{flex:1;min-width:0;margin-top:0;width:auto;height:46px;padding:0 12px}
 input,textarea{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:4px}
 input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;height:46px;display:block;max-width:100%}
 textarea{resize:vertical;min-height:84px}
 .lh{display:flex;justify-content:space-between;align-items:flex-end}
-.lh .clr{border:0;background:none;color:var(--accent);font:inherit;font-size:12px;padding:0 2px;margin-top:12px;cursor:pointer;-webkit-appearance:none}
+.cw{position:relative}
+.cw>input,.cw>textarea{padding-right:42px!important}
+.cx{position:absolute;right:9px;top:13px;width:28px;height:28px;border:0;border-radius:50%;background:var(--line);color:var(--sub);font:inherit;font-size:17px;line-height:1;padding:0 0 2px;display:none;cursor:pointer;-webkit-appearance:none}
+.cx::after{content:"";position:absolute;inset:-8px}
+.cw>select~.cx{right:34px}
+.cw>input:not(:placeholder-shown)~.cx,.cw>textarea:not(:placeholder-shown)~.cx{display:block}
+.cw:has(>select option:not([value=""]):checked)>.cx{display:block}
 label{display:block;margin-top:14px;font-size:13px;color:var(--sub);font-weight:500}
 .sortrow{display:flex;justify-content:flex-end;margin:-2px 0 4px}
 .sortrow button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:500;cursor:pointer}
@@ -85,12 +91,13 @@ label{display:block;margin-top:14px;font-size:13px;color:var(--sub);font-weight:
 .exact button{flex:none;white-space:nowrap;border:0;background:none;color:var(--accent);font-weight:700;cursor:pointer;padding:4px 8px}
 button.line{width:100%;text-align:left;cursor:pointer}
 .stub{display:flex;align-items:stretch;width:100%;text-align:left;font:inherit;color:inherit;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:0;margin-bottom:10px;cursor:pointer;overflow:hidden}
-.stub{--g:var(--accent)}
+.stub{--g:var(--g-music)}
 .stub[data-g="お笑い"]{--g:var(--g-owarai)}
 .stub[data-g="舞台"]{--g:var(--g-butai)}
 .stub[data-g="トーク"]{--g:var(--g-talk)}
 .stub[data-g="スポーツ"]{--g:var(--g-sports)}
 .stub[data-g="展示会"]{--g:var(--g-exhibit)}
+.stub[data-g="その他"]{--g:var(--g-other)}
 .stub .when{flex:0 0 76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:12px 6px;border-right:2px dashed var(--line);background:color-mix(in srgb,var(--g) 14%,var(--surface))}
 .stub .when .y{font-family:var(--font-mono);font-size:11px;color:var(--sub)}
 .stub .when b{font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--g);letter-spacing:-.02em}
@@ -122,6 +129,11 @@ button.line{width:100%;text-align:left;cursor:pointer}
 .stats .card{flex:1;margin:0;text-align:center}
 .stats b{display:block;font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--accent)}
 .stats small{color:var(--sub)}
+.donut{display:block;width:96px;height:96px;margin:0 auto 8px}
+.donut circle{fill:none;stroke-width:5.5}
+.gleg{display:flex;flex-wrap:wrap;gap:6px 14px;margin:-2px 2px 14px;font-size:12px;color:var(--sub)}
+.gleg span{display:inline-flex;align-items:center;gap:5px}
+.gleg i{width:9px;height:9px;border-radius:50%;background:var(--c);display:inline-block}
 .seg{display:flex;gap:6px;margin:16px 0 8px}
 .seg button{flex:1;padding:10px 0;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:15px;cursor:pointer}
 .seg button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
@@ -200,7 +212,7 @@ function setSet(o){
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const GENRES = ["音楽","舞台","お笑い","スポーツ","トーク","展示会"];
+const GENRES = ["音楽","舞台","お笑い","スポーツ","トーク","展示会","その他"];
 const PREFS = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
 const normPref = v => { const t = String(v || "").trim(); if(!t) return ""; return PREFS.find(x => x === t) || PREFS.find(x => x.replace(/[都道府県]$/, "") === t.replace(/[都道府県]$/, "")) || ""; };
 const venueLabel = l => l.venue ? l.venue + (l.pref ? `(${l.pref})` : "") : (l.pref || "");
@@ -215,6 +227,14 @@ function fmtDate(d){
   if(!m) return d;
   const w = "日月火水木金土"[new Date(+m[1], +m[2]-1, +m[3]).getDay()];
   return `${m[1]}/${+m[2]}/${+m[3]}(${w})`;
+}
+const GCOLOR = {"音楽":"var(--g-music)","舞台":"var(--g-butai)","お笑い":"var(--g-owarai)","スポーツ":"var(--g-sports)","トーク":"var(--g-talk)","展示会":"var(--g-exhibit)","その他":"var(--g-other)"};
+function donut(parts, label){
+  const sum = parts.reduce((s, p) => s + p.v, 0);
+  if(!sum) return "";
+  let acc = 0;
+  const arcs = parts.filter(p => p.v > 0).map(p => { const len = p.v / sum * 100, gap = parts.filter(x => x.v > 0).length > 1 ? 0.8 : 0; const c = `<circle cx="21" cy="21" r="15.9155" stroke="${GCOLOR[p.g]}" stroke-dasharray="${Math.max(len - gap, 0.01)} ${100 - Math.max(len - gap, 0.01)}" stroke-dashoffset="${25 - acc}"></circle>`; acc += len; return c; }).join("");
+  return `<svg class="donut" viewBox="0 0 42 42" role="img" aria-label="${esc(label)}">${arcs}</svg>`;
 }
 function yen(n){ return n || n === 0 ? "¥" + Number(n).toLocaleString() : ""; }
 
@@ -244,7 +264,7 @@ async function extractFromImage(dataUrl){
   const b64 = dataUrl.split(",")[1];
   const prompt = `この画像はライブ・コンサートなどのイベントの紙のチケット、電子チケット(チケットぴあ・イープラス・ローチケ等のアプリ画面のスクリーンショット)、フライヤー、ポスター、または予約画面です。購入者の名前は含めないでください。複数日にまたがる券の場合、dateは初日にしてください。読み取れる情報を次のJSONだけで返してください(説明文やコードブロックは不要)。読み取れない項目は空文字にしてください。推測で埋めないでください。
 {
- "genre":"ジャンル(音楽・舞台・お笑い・スポーツ・トーク・展示会のいずれか。判断できなければ空文字)",
+ "genre":"ジャンル(音楽・舞台・お笑い・スポーツ・トーク・展示会・その他のいずれか。どれにも当てはまらない場合は「その他」、判断できなければ空文字)",
  "title":"公演名・イベント名・ツアー名",
  "artist":"出演者名(複数の場合は「、」で区切る)",
  "date":"開催日 YYYY-MM-DD(年が不明なら ${new Date().getFullYear()} とみなす)",
@@ -313,7 +333,7 @@ const curY = () => window.scrollY || document.documentElement.scrollTop || 0;
 const saveScroll = () => { if(!sub) scrollPos[tab] = curY(); };
 function slideIn(dir){ const a = $("#app"); a.classList.remove("in-l", "in-r"); void a.offsetWidth; a.classList.add(dir === "l" ? "in-l" : "in-r"); }
 /* データ(設定)画面の結果メッセージ。再描画しても残し、別の画面へ移ると消す */
-document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-clr]"); if(!b) return; const i = document.getElementById(b.dataset.clr); if(i){ i.value = ""; i.dispatchEvent(new Event("input", {bubbles: true})); i.dispatchEvent(new Event("change", {bubbles: true})); } });
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-clr]"); if(!b) return; const i = document.getElementById(b.dataset.clr); if(i) i.value = ""; });
 let dataMsg = null;
 function setDataMsg(cls, text, id){ id = id || "#dst"; dataMsg = {cls, text, id}; const d = $(id); if(d){ d.className = "status " + cls; d.textContent = text; } }
 function setTab(t, o = {}){
@@ -418,6 +438,7 @@ function renderStats(){
   const total = fl.length;
   const spend = fl.reduce((s, l) => s + (Number(l.price) || 0), 0);
   const artists = {}, venues = {}, prefs = {}, years = {};
+  const gParts = !fGenre && total ? GENRES.map(g => { const ls = fl.filter(l => genreOf(l) === g); return {g, n: ls.length, s: ls.reduce((s, l) => s + (Number(l.price) || 0), 0)}; }).filter(p => p.n) : null;
   lives.filter(l => !fGenre || genreOf(l) === fGenre).forEach(l => { const y = yearOf(l); if(!y) return; const o = years[y] || (years[y] = {n: 0, spend: 0}); o.n++; o.spend += Number(l.price) || 0; });
   fl.forEach(l => {
     (l.artist || "").split(/[、,，]/).map(x => x.trim()).filter(Boolean).forEach(a => { artists[a] = (artists[a] || 0) + 1; });
@@ -429,9 +450,10 @@ function renderStats(){
   $("#app").innerHTML = `
     ${filterBar()}
     <div class="stats">
-      <div class="card"><b>${total}</b><small>参加数</small></div>
-      <div class="card"><b>${spend ? yen(spend) : "-"}</b><small>チケット代合計</small></div>
+      <div class="card">${gParts ? donut(gParts.map(p => ({g: p.g, v: p.n})), "ジャンル別の参加数の内訳") : ""}<b>${total}</b><small>参加数</small></div>
+      <div class="card">${gParts && spend ? donut(gParts.map(p => ({g: p.g, v: p.s})), "ジャンル別のチケット代の内訳") : ""}<b>${spend ? yen(spend) : "-"}</b><small>チケット代合計</small></div>
     </div>
+    ${gParts ? `<div class="gleg">${gParts.map(p => `<span><i style="--c:${GCOLOR[p.g]}"></i>${esc(p.g)}</span>`).join("")}</div>` : ""}
     <div class="seg" role="tablist"><button type="button" role="tab" id="sgA" class="${statTab === "artist" ? "on" : ""}" aria-selected="${statTab === "artist"}">出演者別</button><button type="button" role="tab" id="sgV" class="${statTab === "venue" ? "on" : ""}" aria-selected="${statTab === "venue"}">会場別</button><button type="button" role="tab" id="sgP" class="${statTab === "pref" ? "on" : ""}" aria-selected="${statTab === "pref"}">都道府県別</button><button type="button" role="tab" id="sgY" class="${statTab === "year" ? "on" : ""}" aria-selected="${statTab === "year"}">年別</button></div>
     ${statTab === "venue" ? list(sorted(venues), "venue") : statTab === "year" ? (Object.keys(years).length ? Object.keys(years).sort().reverse().map(y => `<button type="button" class="line" data-k="year" data-q="${y}"><span>${y}年</span><b>${years[y].n}回${years[y].spend ? " ・ " + yen(years[y].spend) : ""} ›</b></button>`).join("") : `<div class="hint">データなし</div>`) : statTab === "pref" ? list(Object.entries(prefs).sort((a, b) => b[1] - a[1] || PREFS.indexOf(a[0]) - PREFS.indexOf(b[0])), "pref") : list(sorted(artists), "artist")}`;
   bindFilter();
@@ -469,7 +491,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016x</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016y</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -567,13 +589,13 @@ function openDetail(id){
 
 /* 抽出結果(オブジェクト)をフォームに反映 */
 function applyResult(r){
-  const gSel = document.querySelector('input[name="genre"]:checked');
+  const gSel = document.getElementById("f_genre");
   const stage = (GENRES.includes(r.genre) ? r.genre : gSel ? gSel.value : "") === "舞台";
   AUTO_FIELDS.forEach(k => {
     const val = r[k];
     if(stage && (k === "open" || k === "start")) return;
     if(val === undefined || val === null || val === "") return;
-    if(k === "genre"){ if(GENRES.includes(val)){ const rb = document.querySelector('input[name="genre"][value="' + val + '"]'); if(rb) rb.checked = true; } return; }
+    if(k === "genre"){ if(GENRES.includes(val)){ const gs = document.getElementById("f_genre"); if(gs) gs.value = val; } return; }
     if(k === "artist"){ artistRows(Array.isArray(val) ? val.map(String) : splitArtists(val)); return; }
     const el = $("#f_" + k);
     if(!el) return;
@@ -619,13 +641,13 @@ function showSugg(input, cands, onPick){
   box.addEventListener("pointerdown", e => e.preventDefault());
   box.addEventListener("mousedown", e => e.preventDefault());
   box.addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; e.preventDefault(); e.stopPropagation(); input.blur(); onPick(cands[Number(b.dataset.i)]); box.remove(); });
-  (input.closest(".prow") || input).after(box);
+  (input.closest(".prow") || input.closest(".cw") || input).after(box);
 }
 const hideSugg = () => document.querySelectorAll(".sugg").forEach(e => e.remove());
 const readArtists = () => [...document.querySelectorAll(".f_artist")].map(i => i.value.trim());
 function artistRows(list){
   const arr = (list.length ? list : [""]).map(x => typeof x === "string" ? {name: x} : x);
-  $("#artists").innerHTML = arr.map((a, i) => `<div class="prow"><input class="f_artist" aria-label="出演者${i + 1}" value="${esc(a.name)}">${arr.length > 1 ? `<button type="button" class="grip" aria-label="出演者${i + 1}を並べ替え(押したまま上下に動かす)">≡</button><button type="button" class="rm" aria-label="出演者${i + 1}を削除">×</button>` : ""}</div>`).join("");
+  $("#artists").innerHTML = arr.map((a, i) => `<div class="prow"><div class="cw" style="flex:1;min-width:0"><input class="f_artist" id="f_artist_${i}" aria-label="出演者${i + 1}" value="${esc(a.name)}" placeholder=" "><button type="button" class="cx" data-clr="f_artist_${i}" aria-label="クリア">×</button></div>${arr.length > 1 ? `<button type="button" class="grip" aria-label="出演者${i + 1}を並べ替え(押したまま上下に動かす)">≡</button><button type="button" class="rm" aria-label="出演者${i + 1}を削除">×</button>` : ""}</div>`).join("");
   document.querySelectorAll("#artists .rm").forEach(b => b.onclick = () => { const cur = readArtists(); cur.splice([...document.querySelectorAll("#artists .rm")].indexOf(b), 1); artistRows(cur); });
   document.querySelectorAll("#artists .grip").forEach(g => {
     g.onpointerdown = ev => { if(ev.pointerType === "touch") return; ev.preventDefault(); dragArtist(ev, g, false); };
@@ -688,23 +710,23 @@ function openForm(existing){
       <div class="hint">チケット・フライヤー・予約画面のスクリーンショットなど。読み取り結果は下のフォームに入るので、確認・修正してから保存してください。</div>
     </div>
     <div class="card">
-      <label style="margin-top:0">ジャンル</label><div class="chips" role="radiogroup" aria-label="ジャンル">${GENRES.map(g => `<label class="chip"><input type="radio" name="genre" value="${g}"${genreOf(l) === g ? " checked" : ""}><span>${g}</span></label>`).join("")}</div>
-      <label>公演名</label><textarea id="f_title" style="min-height:110px">${v("title")}</textarea>
+      <label>公演名</label><div class="cw"><textarea id="f_title" placeholder=" " style="min-height:110px">${v("title")}</textarea><button type="button" class="cx" data-clr="f_title" aria-label="クリア">×</button></div>
       <label>出演者</label><div id="artists"></div>
       <button type="button" class="btn sec" id="addArtist" style="margin-top:8px">＋ 出演者を追加</button>
       <button type="button" class="btn sec" id="sortArtist">出演者を並べ替える</button>
       <div class="status" id="stSort"></div>
-      <label>会場</label><input id="f_venue" value="${v("venue")}">
-      <label>会場(都道府県)</label><select id="f_pref"><option value="">未選択</option>${PREFS.map(x => `<option value="${x}"${l.pref === x ? " selected" : ""}>${x}</option>`).join("")}</select>
+      <label>会場</label><div class="cw"><input id="f_venue" placeholder=" " value="${v("venue")}"><button type="button" class="cx" data-clr="f_venue" aria-label="クリア">×</button></div>
+      <label>会場(都道府県)</label><div class="cw"><select id="f_pref"><option value="">未選択</option>${PREFS.map(x => `<option value="${x}"${l.pref === x ? " selected" : ""}>${x}</option>`).join("")}</select><button type="button" class="cx" data-clr="f_pref" aria-label="クリア">×</button></div>
       <div class="row3">
-        <div><div class="lh"><label>日付</label><button type="button" class="clr" data-clr="f_date">クリア</button></div><input id="f_date" type="date" value="${v("date")}"></div>
-        <div><div class="lh"><label>開場</label><button type="button" class="clr" data-clr="f_open">クリア</button></div><input id="f_open" type="time" value="${v("open")}"></div>
-        <div><div class="lh"><label>開演</label><button type="button" class="clr" data-clr="f_start">クリア</button></div><input id="f_start" type="time" value="${v("start")}"></div>
+        <div><label>日付</label><input id="f_date" type="date" value="${v("date")}"></div>
+        <div><label>開場</label><input id="f_open" type="time" value="${v("open")}"></div>
+        <div><label>開演</label><input id="f_start" type="time" value="${v("start")}"></div>
       </div>
-      <label>席種・券種</label><input id="f_seatType" value="${v("seatType")}">
-      <label>座席・整理番号</label><input id="f_seat" value="${v("seat")}">
-      <label>チケット代</label><input id="f_price" type="number" inputmode="numeric" value="${v("price")}">
-      <label>詳細</label><textarea id="f_setlist" inputmode="url" autocapitalize="off" autocomplete="off" placeholder="URLを入力(複数のときは改行で区切る)" style="min-height:96px">${v("setlist")}</textarea>
+      <label>席種・券種</label><div class="cw"><input id="f_seatType" placeholder=" " value="${v("seatType")}"><button type="button" class="cx" data-clr="f_seatType" aria-label="クリア">×</button></div>
+      <label>座席・整理番号</label><div class="cw"><input id="f_seat" placeholder=" " value="${v("seat")}"><button type="button" class="cx" data-clr="f_seat" aria-label="クリア">×</button></div>
+      <label>チケット代</label><div class="cw"><input id="f_price" placeholder=" " type="number" inputmode="numeric" value="${v("price")}"><button type="button" class="cx" data-clr="f_price" aria-label="クリア">×</button></div>
+      <label>ジャンル</label><select id="f_genre">${GENRES.map(g => `<option${genreOf(l) === g ? " selected" : ""}>${g}</option>`).join("")}</select>
+      <label>詳細</label><div class="cw"><textarea id="f_setlist" inputmode="url" autocapitalize="off" autocomplete="off" placeholder="URLを入力(複数のときは改行で区切る)" style="min-height:96px">${v("setlist")}</textarea><button type="button" class="cx" data-clr="f_setlist" aria-label="クリア">×</button></div>
     </div>
     <button class="btn" id="save">保存</button>
     <button class="btn sec" id="cancel">キャンセル</button>
@@ -751,7 +773,7 @@ function openForm(existing){
 
   $("#save").onclick = async () => {
     FIELDS.forEach(k => { if(k !== "artist" && k !== "genre") l[k] = $("#f_" + k).value.trim(); });
-    { const gr = document.querySelector('input[name="genre"]:checked'); l.genre = gr ? gr.value : "音楽"; }
+    l.genre = $("#f_genre").value || "音楽";
     l.title = l.title.replace(/\s*\n\s*/g, " ");
     l.artist = readArtists().filter(Boolean).join("、");
     if(!l.artist && !l.title){ alert("公演名か出演者を入力してください"); return; }
