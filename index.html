@@ -355,7 +355,15 @@ function setTab(t, o = {}){
   window.scrollTo(0, o.top ? 0 : (scrollPos[t] || 0));
   if(o.dir) slideIn(o.dir);
 }
-document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => { const t = b.dataset.tab, same = !sub && tab === t; setTab(t, {top: same}); });
+let tabArmAt = 0;
+document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => {
+  const t = b.dataset.tab, same = !sub && tab === t;
+  if(sub && subKind === "form"){
+    if(Date.now() - tabArmAt < 4000) tabArmAt = 0;
+    else { tabArmAt = Date.now(); showToast("もう一度タブを押すと移動します(入力中の内容は保存されません)"); return; }
+  }
+  setTab(t, {top: same});
+});
 let toastTimer = 0;
 function showToast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200); }
 /* スワイプ: 履歴↔集計↔設定、詳細→履歴、登録→戻る(入力中の誤操作を防ぐため2回続けて) */
@@ -499,7 +507,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016E</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016F</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
