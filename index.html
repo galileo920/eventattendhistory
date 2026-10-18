@@ -58,7 +58,9 @@ main{max-width:560px;margin:0 auto;padding-block:14px 150px;padding-left:var(--g
 .search{margin-bottom:12px}
 [hidden]{display:none!important}
 .filters{display:flex;gap:8px;margin-bottom:10px}
-.filters select{flex:1;min-width:0;margin-top:0;width:auto;height:46px;padding:0 12px}
+.fcol{flex:1;min-width:0}
+.fcol label{margin:0 0 4px}
+.filters select{display:block;min-width:0;margin-top:0;width:100%;height:46px;padding:0 12px}
 input,textarea{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:4px}
 input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;height:46px;display:block;max-width:100%}
 textarea{resize:vertical;min-height:84px}
@@ -126,7 +128,9 @@ button.line{width:100%;text-align:left;cursor:pointer}
 .scan{display:flex;gap:10px;margin-top:10px}
 .scan .btn{margin-top:0}
 .stats{display:flex;gap:10px;margin-bottom:12px}
-.stats .card{flex:1;margin:0;text-align:center}
+.stats .sc{flex:1;min-width:0;display:flex;flex-direction:column}
+.stats .sc label{margin:0 0 4px}
+.stats .card{flex:1;margin:0;text-align:center;display:flex;flex-direction:column;justify-content:center}
 .stats b{display:block;font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--accent)}
 .stats small{color:var(--sub)}
 .donut{display:block;width:96px;height:96px;margin:0 auto 8px}
@@ -316,7 +320,7 @@ const yearOf = l => (l.date || "").slice(0, 4);
 const filtered = () => lives.filter(l => (!fGenre || genreOf(l) === fGenre) && (!fYear || yearOf(l) === fYear));
 function filterBar(){
   const ys = [...new Set(lives.map(yearOf).filter(Boolean).concat(fYear ? [fYear] : []))].sort().reverse();
-  return `<div class="filters"><select id="fg" aria-label="ジャンルで絞り込み"><option value="">ジャンル(すべて)</option>${GENRES.map(g => `<option value="${g}"${fGenre === g ? " selected" : ""}>${g}</option>`).join("")}</select><select id="fy" aria-label="年で絞り込み"><option value="">年(すべて)</option>${ys.map(y => `<option value="${y}"${fYear === y ? " selected" : ""}>${y}年</option>`).join("")}</select></div>`;
+  return `<div class="filters"><div class="fcol"><label for="fg">ジャンル</label><select id="fg" aria-label="ジャンルで絞り込み"><option value="">すべて</option>${GENRES.map(g => `<option value="${g}"${fGenre === g ? " selected" : ""}>${g}</option>`).join("")}</select></div><div class="fcol"><label for="fy">年</label><select id="fy" aria-label="年で絞り込み"><option value="">すべて</option>${ys.map(y => `<option value="${y}"${fYear === y ? " selected" : ""}>${y}年</option>`).join("")}</select></div></div>`;
 }
 function bindFilter(){
   $("#fg").onchange = e => { fGenre = e.target.value; render(); };
@@ -450,8 +454,8 @@ function renderStats(){
   $("#app").innerHTML = `
     ${filterBar()}
     <div class="stats">
-      <div class="card">${gParts ? donut(gParts.map(p => ({g: p.g, v: p.n})), "ジャンル別の参加数の内訳") : ""}<b>${total}</b><small>参加数</small></div>
-      <div class="card">${gParts && spend ? donut(gParts.map(p => ({g: p.g, v: p.s})), "ジャンル別のチケット代の内訳") : ""}<b>${spend ? yen(spend) : "-"}</b><small>チケット代合計</small></div>
+      <div class="sc"><label>参加数</label><div class="card">${gParts ? donut(gParts.map(p => ({g: p.g, v: p.n})), "ジャンル別の参加数の内訳") : ""}<b>${total}</b></div></div>
+      <div class="sc"><label>チケット代合計</label><div class="card">${gParts && spend ? donut(gParts.map(p => ({g: p.g, v: p.s})), "ジャンル別のチケット代の内訳") : ""}<b>${spend ? yen(spend) : "-"}</b></div></div>
     </div>
     ${gParts ? `<div class="gleg">${gParts.map(p => `<span><i style="--c:${GCOLOR[p.g]}"></i>${esc(p.g)}</span>`).join("")}</div>` : ""}
     <div class="seg" role="tablist"><button type="button" role="tab" id="sgA" class="${statTab === "artist" ? "on" : ""}" aria-selected="${statTab === "artist"}">出演者別</button><button type="button" role="tab" id="sgV" class="${statTab === "venue" ? "on" : ""}" aria-selected="${statTab === "venue"}">会場別</button><button type="button" role="tab" id="sgP" class="${statTab === "pref" ? "on" : ""}" aria-selected="${statTab === "pref"}">都道府県別</button><button type="button" role="tab" id="sgY" class="${statTab === "year" ? "on" : ""}" aria-selected="${statTab === "year"}">年別</button></div>
@@ -491,7 +495,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016z</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016A</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
