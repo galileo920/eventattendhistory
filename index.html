@@ -375,7 +375,7 @@ function dateParts(d){
 }
 function renderList(){
   $("#app").innerHTML = `
-    <input class="search" id="q" type="search" placeholder="公演名・出演者・会場などで検索" value="${esc(query)}">
+    <input class="search" id="q" type="search" placeholder="公演名・出演者・会場で検索" value="${esc(query)}">
     ${filterBar()}
     <div class="sortrow"><button type="button" id="sortToggle" aria-label="並び順を切り替え">${sortAsc ? "古い順" : "新しい順"} ⇅</button></div>
     ${exact ? `<div class="exact"><span>${exact.kind === "venue" ? "会場" : exact.kind === "pref" ? "都道府県" : "出演者"}「${esc(exact.value)}」と完全一致</span><button type="button" id="exOff">解除</button></div>` : ""}
@@ -468,7 +468,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016v</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016w</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
