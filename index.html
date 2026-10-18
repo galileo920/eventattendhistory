@@ -104,7 +104,8 @@ button.line{width:100%;text-align:left;cursor:pointer}
 .stub .when .y{font-family:var(--font-mono);font-size:11px;color:var(--sub)}
 .stub .when b{font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--g);letter-spacing:-.02em}
 .stub .when .w{font-size:12px;color:var(--sub)}
-.stub .what{flex:1;min-width:0;padding:12px 14px}
+.stub .when .t{font-family:var(--font-mono);font-size:11px;color:var(--sub);margin-top:2px}
+.stub .what{flex:1;min-width:0;padding:12px 14px;display:flex;flex-direction:column;justify-content:center}
 .stub .who{font-weight:700;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .stub .ttl{font-size:14px;color:var(--sub);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .stub .where{font-size:13px;color:var(--ink);margin-top:2px}
@@ -430,7 +431,7 @@ function fillList(){
     const p = dateParts(l.date), y = p ? p.y + "年" : "日付未設定";
     const head = y !== lastY ? `<div class="yhead">${y}</div>` : ""; lastY = y;
     return head + `<div class="stub" role="button" tabindex="0" data-g="${esc(genreOf(l))}" data-id="${esc(l.id)}">
-      <div class="when">${p ? `<span class="y">${p.y}</span><b>${p.m}.${String(p.d).padStart(2, "0")}</b><span class="w">${p.w}</span>` : `<b>--</b>`}</div>
+      <div class="when">${p ? `<span class="y">${p.y}</span><b>${p.m}.${String(p.d).padStart(2, "0")}</b><span class="w">${p.w}</span>${l.start ? `<span class="t">${esc(l.start)}</span>` : ""}` : `<b>--</b>`}</div>
       <div class="what"><div class="who">${esc(l.title || l.artist || "(未入力)")}</div>${l.title && l.artist ? `<div class="ttl">${esc(l.artist)}</div>` : ""}<div class="where">${esc(venueLabel(l))}</div></div>
     </div>`;
   }).join("") : `<div class="empty">${lives.length ? "該当する記録がありません" : "まだ記録がありません。<br>右下の＋から、最初のイベントを追加しましょう"}</div>`;
@@ -495,7 +496,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016A</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016B</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
