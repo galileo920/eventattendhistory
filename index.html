@@ -7,8 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="イベント参加履歴">
-<meta name="theme-color" content="#d93a6b">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%23d93a6b'/%3E%3Ctext x='90' y='120' font-size='100' text-anchor='middle'%3E🎤%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#1f2330">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%231f2330'/%3E%3Ctext x='90' y='120' font-size='100' text-anchor='middle'%3E🎤%3C/text%3E%3C/svg%3E">
 <title>イベント参加履歴</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>
@@ -16,7 +16,7 @@
 :root{
   --card:var(--surface); --fg:var(--ink); --accent-fg:var(--accent-ink);
   --bg:#edeff4; --surface:#ffffff; --ink:#15171f; --sub:#5e6372; --line:#d9dce6;
-  --accent:#d93a6b; --accent-ink:#ffffff; --accent-soft:#fbe3ea; --ok:#15803d; --danger:#c62828;
+  --accent:#1f2330; --accent-ink:#ffffff; --accent-soft:#e4e6ee; --ok:#15803d; --danger:#c62828;
   --g-owarai:#d9730d; --g-butai:#7c4dcc; --g-talk:#0f8a8a; --g-sports:#3f8f1f; --g-exhibit:#2f6fd0; --g-other:#6b7280; --g-music:#d93a6b;
   --font-body:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif;
   --font-mono:var(--font-body);
@@ -25,14 +25,14 @@
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --bg:#0f1118; --surface:#181b25; --ink:#eef0f7; --sub:#9aa1b5; --line:#2a2f3e;
-    --accent:#f0668f; --accent-ink:#1a0a10; --accent-soft:#34202a; --ok:#4ade80; --danger:#f87171;
+    --accent:#eef0f7; --accent-ink:#15171f; --accent-soft:#2a2f3e; --ok:#4ade80; --danger:#f87171;
     --g-owarai:#f5a04a; --g-butai:#b79af0; --g-talk:#4cc9c9; --g-sports:#86d65a; --g-exhibit:#7aaaf5; --g-other:#9aa1b5; --g-music:#f0668f;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0f1118; --surface:#181b25; --ink:#eef0f7; --sub:#9aa1b5; --line:#2a2f3e;
-  --accent:#f0668f; --accent-ink:#1a0a10; --accent-soft:#34202a; --ok:#4ade80; --danger:#f87171;
+  --accent:#eef0f7; --accent-ink:#15171f; --accent-soft:#2a2f3e; --ok:#4ade80; --danger:#f87171;
     --g-owarai:#f5a04a; --g-butai:#b79af0; --g-talk:#4cc9c9; --g-sports:#86d65a; --g-exhibit:#7aaaf5; --g-other:#9aa1b5; --g-music:#f0668f;
   color-scheme:dark;
 }
@@ -491,7 +491,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016y</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016z</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
