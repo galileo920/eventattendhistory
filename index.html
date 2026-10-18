@@ -43,6 +43,7 @@ button,input,textarea{font:inherit;color:inherit}
 .bar-in{max-width:560px;margin:0 auto;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .bar h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.02em}
 .bar .count{font-family:var(--font-mono);font-size:13px;color:var(--sub)}
+.stitle{margin:0 0 14px;font-size:18px;font-weight:700;letter-spacing:.02em}
 main{max-width:560px;margin:0 auto;padding-block:14px 150px;padding-left:var(--gutter-l);padding-right:var(--gutter-r)}
 .toast{position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));max-width:min(92vw,420px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.28)}
 @keyframes inFromRight{from{opacity:0;transform:translateX(32px)}to{opacity:1;transform:none}}
@@ -175,7 +176,7 @@ select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:1
 <nav class="tabbar"><div class="tabbar-in">
   <button data-tab="list" class="on">一覧</button>
   <button data-tab="stats">集計</button>
-  <button data-tab="settings">設定</button>
+  <button data-tab="settings">データ</button>
 </div></nav>
 
 <script>
@@ -399,6 +400,16 @@ function onSwipe(dx){
 })();
 $("#fab").onclick = () => openForm();
 
+let subEdit = false;
+function screenTitle(){
+  if(sub) return subKind === "detail" ? "参加イベント詳細" : subEdit ? "参加イベント編集" : "参加イベント登録";
+  return tab === "stats" ? "参加イベント集計" : tab === "settings" ? "データ管理" : "参加イベント一覧";
+}
+new MutationObserver(() => {
+  const a = document.getElementById("app");
+  if(!a || (a.firstElementChild && a.firstElementChild.classList.contains("stitle"))) return;
+  a.insertAdjacentHTML("afterbegin", `<h2 class="stitle">${screenTitle()}</h2>`);
+}).observe(document.getElementById("app"), {childList: true});
 function render(){
   if(tab === "list") renderList();
   else if(tab === "stats") renderStats();
@@ -507,7 +518,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016G</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016H</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -704,7 +715,7 @@ function dragArtist(ev, grip, isTouch){
 }
 
 function openForm(existing){
-  saveScroll(); sub = true; subKind = "form"; subBack = () => existing ? openDetail(existing.id) : setTab("list");
+  saveScroll(); sub = true; subKind = "form"; subEdit = !!existing; subBack = () => existing ? openDetail(existing.id) : setTab("list");
   window.scrollTo(0, 0);
   const l = existing ? {...existing} : {id: uid(), createdAt: Date.now()};
   $("#fab").style.display = "none";
