@@ -435,7 +435,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016R</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016S</div>
   `;
   if(dataMsg){ const d = $(dataMsg.id || "#dst"); d.className = "status " + dataMsg.cls; d.textContent = dataMsg.text; }
   $("#export").onclick = exportJSON;
@@ -703,6 +703,14 @@ function openForm(existing){
 (async () => {
   try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
   await refresh();
+  /* 保存済みの読み取り画像を一度だけすべて削除する */
+  try {
+    if(!localStorage.getItem("livelog_photo_purged_v1")){
+      for(const x of lives){ if("photo" in x){ const y = {...x}; delete y.photo; await dbPut(y); } }
+      localStorage.setItem("livelog_photo_purged_v1", "1");
+      await refresh();
+    }
+  } catch(e){}
   setTab("list");
 })();
 </script>
