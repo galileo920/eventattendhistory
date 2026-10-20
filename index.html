@@ -524,7 +524,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016O</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016P</div>
   `;
   $("#saveSet").onclick = () => {
     setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
@@ -777,7 +777,7 @@ function openForm(existing){
       <div class="lh"><label>詳細</label></div><div class="cw"><textarea id="f_setlist" inputmode="url" autocapitalize="off" autocomplete="off" placeholder="URLを入力(複数のときは改行で区切る)" style="min-height:96px">${v("setlist")}</textarea><button type="button" class="cx" data-clr="f_setlist" aria-label="クリア">×</button></div>
     </div>
     ${existing ? `<button class="btn danger" id="del">削除</button>` : ""}
-    <div class="bbar"><div class="bbar-in"><button class="btn" id="save">保存</button><button class="btn sec" id="cancel">キャンセル</button></div></div>
+    <div class="bbar"><div class="bbar-in"><button class="btn sec" id="cancel">キャンセル</button><button class="btn" id="save">${existing ? "保存" : "登録"}</button></div></div>
   `;
   artistRows(splitArtists(l.artist));
   const fillPref = v => { const sel = $("#f_pref"); if(!sel || sel.value) return; const k = lives.find(z => z.venue === v && z.pref); if(k) sel.value = k.pref; };
