@@ -134,8 +134,6 @@ button.line{width:100%;text-align:left;cursor:pointer}
 .hint{font-size:12px;color:var(--sub);margin-top:6px}
 .status{margin-top:10px;font-size:14px}
 .status.ok{color:var(--ok)}.status.err{color:var(--danger)}
-.scan{display:flex;gap:10px;margin-top:10px}
-.scan .btn{margin-top:0}
 .stats{display:flex;gap:10px;margin-bottom:12px}
 .stats .sc{flex:1;min-width:0;display:flex;flex-direction:column}
 .stats .sc label{margin:0 0 4px}
@@ -168,9 +166,6 @@ button.line{width:100%;text-align:left;cursor:pointer}
 .chip input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
 .chip input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-.scan input{display:none}
-.preview{max-width:100%;max-height:180px;border-radius:10px;margin-top:10px;display:block}
-.thumb{width:100%;border-radius:10px;margin-top:8px}
 select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit}
 .card select{height:46px;margin-top:4px;padding:0 12px}
 .cw>input,.cw>textarea,.cw>select{display:block}
@@ -214,15 +209,6 @@ const dbPut = v => tx("readwrite", s => s.put(v));
 const dbDel = id => tx("readwrite", s => s.delete(id));
 const dbClear = () => tx("readwrite", s => s.clear());
 
-/* ========== 設定(localStorage) ========== */
-const DEFAULT_MODEL = "claude-sonnet-5-5";
-function getSet(){
-  try { return JSON.parse(localStorage.getItem("livelog_settings") || "{}"); } catch(e){ return {}; }
-}
-function setSet(o){
-  try { localStorage.setItem("livelog_settings", JSON.stringify({...getSet(), ...o})); } catch(e){}
-}
-
 /* ========== ユーティリティ ========== */
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -234,7 +220,6 @@ const venueLabel = l => l.venue ? l.venue + (l.pref ? `(${l.pref})` : "") : (l.p
 const genreOf = l => l && l.genre === "ライブ" ? "音楽" : l && l.genre === "演劇" ? "舞台" : GENRES.includes(l && l.genre) ? l.genre : "音楽";
 const FIELDS = ["genre","title","artist","venue","pref","date","open","start","seatType","seat","price","setlist"];
 /* 自動入力・貼り付け取り込みの対象(同行者・セットリスト・メモは手入力のみ) */
-const AUTO_FIELDS = ["genre","title","artist","venue","pref","date","open","start","seatType","seat","price"];
 
 function fmtDate(d){
   if(!d) return "日付未設定";
@@ -253,72 +238,6 @@ function donut(parts, label){
 }
 function yen(n){ return n || n === 0 ? "¥" + Number(n).toLocaleString() : ""; }
 
-/* 画像を縮小してJPEGのdataURLに */
-function resizeImage(file, max, quality){
-  return new Promise((res, rej) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const k = Math.min(1, max / Math.max(img.width, img.height));
-      const c = document.createElement("canvas");
-      c.width = Math.round(img.width * k);
-      c.height = Math.round(img.height * k);
-      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url);
-      res(c.toDataURL("image/jpeg", quality));
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("画像を読み込めませんでした")); };
-    img.src = url;
-  });
-}
-
-/* ========== Claude API ========== */
-async function extractFromImage(dataUrl){
-  const {apiKey, model} = getSet();
-  if(!apiKey) throw new Error("設定タブでAPIキーを入力してください");
-  const b64 = dataUrl.split(",")[1];
-  const prompt = `この画像はライブ・コンサートなどのイベントの紙のチケット、電子チケット(チケットぴあ・イープラス・ローチケ等のアプリ画面のスクリーンショット)、フライヤー、ポスター、または予約画面です。購入者の名前は含めないでください。複数日にまたがる券の場合、dateは初日にしてください。読み取れる情報を次のJSONだけで返してください(説明文やコードブロックは不要)。読み取れない項目は空文字にしてください。推測で埋めないでください。
-{
- "genre":"ジャンル(音楽・舞台・お笑い・スポーツ・トーク・展示会・その他のいずれか。どれにも当てはまらない場合は「その他」、判断できなければ空文字)",
- "title":"公演名・イベント名・ツアー名",
- "artist":"出演者名(複数の場合は「、」で区切る)",
- "date":"開催日 YYYY-MM-DD(年が不明なら ${new Date().getFullYear()} とみなす)",
- "venue":"会場名",
- "pref":"会場がある都道府県名(例: 東京都、大阪府、北海道)。会場名や記載から確実に分かる場合のみ。分からなければ空文字",
- "open":"開場時刻 HH:MM",
- "start":"開演時刻 HH:MM",
- "seatType":"席種・券種(例: 一般指定席、スタンディング、グッズ付指定席)",
- "seat":"座席・整理番号(例: 11列40番、整理番号C 266番)",
- "price":"チケット代(数字のみ)"
-}`;
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify({
-      model: model || DEFAULT_MODEL,
-      max_tokens: 1000,
-      messages: [{role: "user", content: [
-        {type: "image", source: {type: "base64", media_type: "image/jpeg", data: b64}},
-        {type: "text", text: prompt}
-      ]}]
-    })
-  });
-  if(!r.ok){
-    let msg = "";
-    try { msg = (await r.json()).error?.message || ""; } catch(e){}
-    throw new Error(`APIエラー(${r.status}) ${msg}`);
-  }
-  const j = await r.json();
-  const text = (j.content || []).map(c => c.text || "").join("");
-  const m = /\{[\s\S]*\}/.exec(text);
-  if(!m) throw new Error("読み取り結果を解析できませんでした");
-  return JSON.parse(m[0]);
-}
 
 /* ========== 画面 ========== */
 let tab = "list";
@@ -500,17 +419,7 @@ function renderStats(){
 }
 
 function renderSettings(){
-  const s = getSet();
   $("#app").innerHTML = `
-    <div class="card" hidden><!-- 当面使わないため非表示(再表示するには hidden を外す) -->
-      <h2>Claude API</h2>
-      <label>APIキー</label>
-      <input id="key" type="password" autocomplete="off" placeholder="sk-ant-..." value="${esc(s.apiKey || "")}">
-      <label>モデル</label>
-      <input id="model" value="${esc(s.model || DEFAULT_MODEL)}">
-      <div class="hint">キーはこの端末のブラウザ内にだけ保存され、画像の読み取り時にAnthropicへ直接送信されます。他人と共有する端末では入力しないでください。</div>
-      <button class="btn" id="saveSet">保存</button>
-    </div>
     <div class="card">
       <h2>バックアップ</h2>
       <div class="hint">iOSはブラウザのデータが消えることがあります。定期的に書き出して、ファイルAppやiCloud Driveに保存してください。</div>
@@ -526,12 +435,8 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016Q</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016R</div>
   `;
-  $("#saveSet").onclick = () => {
-    setSet({apiKey: $("#key").value.trim(), model: $("#model").value.trim() || DEFAULT_MODEL});
-    alert("保存しました");
-  };
   if(dataMsg){ const d = $(dataMsg.id || "#dst"); d.className = "status " + dataMsg.cls; d.textContent = dataMsg.text; }
   $("#export").onclick = exportJSON;
   $("#csv").onclick = exportCSV;
@@ -629,34 +534,10 @@ function openDetail(id){
     ${row("チケット代", l.price !== "" && l.price != null ? yen(l.price) : "")}
     ${row("ジャンル", genreOf(l))}
     ${(() => { const t = String(l.setlist || "").trim(); return t ? `<div class="field"><small>詳細</small><div>${linkify(t)}</div></div>` : ""; })()}
-    ${l.photo ? `<img class="thumb" src="${l.photo}">` : ""}
     <div class="bend"><button class="btn sec" id="back">戻る</button><button class="btn" id="edit">編集</button></div>
   `;
   $("#back").onclick = () => setTab("list");
   $("#edit").onclick = () => openForm(l);
-}
-
-/* 抽出結果(オブジェクト)をフォームに反映 */
-function applyResult(r){
-  const gSel = document.getElementById("f_genre");
-  const stage = (GENRES.includes(r.genre) ? r.genre : gSel ? gSel.value : "") === "舞台";
-  AUTO_FIELDS.forEach(k => {
-    const val = r[k];
-    if(stage && (k === "open" || k === "start")) return;
-    if(val === undefined || val === null || val === "") return;
-    if(k === "genre"){ if(GENRES.includes(val)){ const gs = document.getElementById("f_genre"); if(gs) gs.value = val; } return; }
-    if(k === "artist"){ artistRows(Array.isArray(val) ? val.map(String) : splitArtists(val)); return; }
-    const el = $("#f_" + k);
-    if(!el) return;
-    if(k === "pref"){ el.value = normPref(val); return; }
-    if(k === "memo" || k === "setlist"){
-      el.value = el.value ? el.value + "\n" + val : String(val);
-    } else if(k === "price"){
-      el.value = String(val).replace(/[^\d]/g, "");
-    } else {
-      el.value = String(val);
-    }
-  });
 }
 
 /* ========== 入力フォーム ========== */
@@ -748,22 +629,16 @@ function openForm(existing){
   $("#fab").style.display = "none"; document.querySelector(".tabbar").hidden = true;
   const v = k => esc(l[k] ?? "");
   $("#app").innerHTML = `
-    <div class="card" style="margin-top:12px" hidden><!-- 当面使わないため非表示 -->
-      <h2>画像から自動入力</h2>
-      <div class="scan">
-        <label class="btn sec">撮影<input id="cam" type="file" accept="image/*" capture="environment"></label>
-        <label class="btn sec">写真を選ぶ<input id="pick" type="file" accept="image/*"></label>
-      </div>
-      <img id="pv" class="preview" style="display:none">
-      <div id="st" class="status"></div>
-      <div class="hint">チケット・フライヤー・予約画面のスクリーンショットなど。読み取り結果は下のフォームに入るので、確認・修正してから保存してください。</div>
-    </div>
-    <div class="card">
+    <div class="card" style="margin-top:12px">
       <label>公演名</label><div class="cw"><textarea id="f_title" placeholder=" " style="min-height:110px">${v("title")}</textarea><button type="button" class="cx" data-clr="f_title" aria-label="クリア">×</button></div>
       <label>出演者</label><div id="artists"></div>
       <button type="button" class="btn sec" id="addArtist" style="margin-top:8px">＋ 出演者を追加</button>
       <button type="button" class="btn sec" id="sortArtist">出演者を並べ替える</button>
       <div class="status" id="stSort"></div>
+      <div class="lh"><label for="artIn">出演者をまとめて追加</label></div>
+      <div class="cw"><textarea id="artIn" style="min-height:72px" placeholder="名前を「、」「,」や改行で区切って入力"></textarea><button type="button" class="cx" data-clr="artIn" aria-label="クリア">×</button></div>
+      <button type="button" class="btn sec" id="artApply">入力欄に追加</button>
+      <div class="status" id="stApply"></div>
       <div class="lh"><label>会場</label></div><div class="cw"><input id="f_venue" placeholder=" " value="${v("venue")}"><button type="button" class="cx" data-clr="f_venue" aria-label="クリア">×</button></div>
       <div class="lh"><label>会場(都道府県)</label></div><div class="cw"><select id="f_pref"><option value="">未選択</option>${PREFS.map(x => `<option value="${x}"${l.pref === x ? " selected" : ""}>${x}</option>`).join("")}</select></div>
       <div class="row3">
@@ -793,36 +668,22 @@ function openForm(existing){
     artistRows(sortNames(cur));
     sst.className = "status ok"; sst.textContent = "記号→数字→英字→日本語の順に並べ替えました。";
   };
+  $("#artApply").onclick = () => {
+    const sa = $("#stApply"), add = $("#artIn").value.split(/[、,，\n]/).map(x => x.trim()).filter(Boolean);
+    if(!add.length){ sa.className = "status err"; sa.textContent = "出演者を入力してください。"; return; }
+    const cur = readArtists().filter(Boolean);
+    let cnt = 0;
+    add.forEach(n => { if(!cur.includes(n)){ cur.push(n); cnt++; } });
+    artistRows(cur);
+    $("#artIn").value = "";
+    sa.className = "status ok"; sa.textContent = `${cnt}件を入力欄に追加しました。保存すると反映されます。`;
+  };
   $("#addArtist").onclick = () => { const cur = readArtists(); cur.push(""); artistRows(cur); const ins = document.querySelectorAll(".f_artist"); ins[ins.length - 1].focus(); };
   if(existing) $("#del").onclick = async () => {
     if(!confirm("この記録を削除しますか?")) return;
     await dbDel(existing.id); await refresh(); setTab("list");
   };
   $("#cancel").onclick = () => { if(!confirm("入力中の内容は保存されません。戻りますか?")) return; existing ? openDetail(existing.id) : setTab("list"); };
-
-  if(l.photo){ const pv = $("#pv"); pv.src = l.photo; pv.style.display = "block"; }
-
-  const handle = async e => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const st = $("#st");
-    st.className = "status"; st.textContent = "読み取り中…";
-    try {
-      const big = await resizeImage(file, 1600, 0.85);
-      const small = await resizeImage(file, 600, 0.7);
-      l.photo = small;
-      const pv = $("#pv"); pv.src = small; pv.style.display = "block";
-      const r = await extractFromImage(big);
-      applyResult(r);
-      st.className = "status ok"; st.textContent = "読み取り完了。内容を確認してください。";
-    } catch(err){
-      st.className = "status err"; st.textContent = err.message;
-    }
-    e.target.value = "";
-  };
-  $("#cam").onchange = handle;
-  $("#pick").onchange = handle;
-
 
   $("#save").onclick = async () => {
     FIELDS.forEach(k => { if(k !== "artist" && k !== "genre") l[k] = $("#f_" + k).value.trim(); });
