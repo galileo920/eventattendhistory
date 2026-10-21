@@ -214,6 +214,8 @@ const genreOf = l => l && l.genre === "ライブ" ? "音楽" : l && l.genre === 
 const FIELDS = ["genre","title","artist","venue","pref","date","open","start","seatType","seat","price","setlist"];
 /* 自動入力・貼り付け取り込みの対象(同行者・セットリスト・メモは手入力のみ) */
 
+/* 表示用: 時刻の時の0埋めを外す(09:05 → 9:05) */
+const fmtTime = t => String(t || "").replace(/^0(\d:)/, "$1");
 function fmtDate(d){
   if(!d) return "日付未設定";
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
@@ -368,7 +370,7 @@ function fillList(){
     const p = dateParts(l.date), y = p ? p.y + "年" : "日付未設定";
     const head = y !== lastY ? `<div class="yhead">${y}</div>` : ""; lastY = y;
     return head + `<div class="stub" role="button" tabindex="0" data-g="${esc(genreOf(l))}" data-id="${esc(l.id)}">
-      <div class="when">${p ? `<span class="y">${p.y}</span><b>${p.m}.${String(p.d).padStart(2, "0")}</b><span class="w">${p.w}</span>${l.start ? `<span class="t">${esc(l.start)}</span>` : ""}` : `<b>--</b>`}</div>
+      <div class="when">${p ? `<span class="y">${p.y}</span><b>${p.m}.${p.d}</b><span class="w">${p.w}</span>${l.start ? `<span class="t">${esc(fmtTime(l.start))}</span>` : ""}` : `<b>--</b>`}</div>
       <div class="what"><div class="who">${esc(l.title || l.artist || "(未入力)")}</div>${l.title && l.artist ? `<div class="ttl">${esc(l.artist)}</div>` : ""}<div class="where">${esc(venueLabel(l))}</div></div>
     </div>`;
   }).join("") : `<div class="empty">${lives.length ? "該当する記録がありません" : "まだ記録がありません。<br>右下の＋から、最初のイベントを追加しましょう"}</div>`;
@@ -423,7 +425,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016V</div>
+    <div class="hint" style="text-align:center">記録件数: ${lives.length} ／ 版: 1016W</div>
   `;
   if(dataMsg){ const d = $(dataMsg.id || "#dst"); d.className = "status " + dataMsg.cls; d.textContent = dataMsg.text; }
   $("#export").onclick = exportJSON;
@@ -516,7 +518,7 @@ function openDetail(id){
       <div class="m">${fmtDate(l.date)}${venueLabel(l) ? " ／ " + esc(venueLabel(l)) : ""}</div>
     </div>
     ${(() => { const a = (l.artist || "").split("、").map(x => x.trim()).filter(Boolean); return a.length > 10 ? `<div class="field scroll"><small>出演者</small><div tabindex="0">${esc(a.join("\n"))}</div></div>` : row("出演者", a.join("\n")); })()}
-    ${row("開場 / 開演", [l.open, l.start].filter(Boolean).join(" / "))}
+    ${row("開場 / 開演", [l.open, l.start].filter(Boolean).map(fmtTime).join(" / "))}
     ${row("席種・券種", l.seatType)}
     ${row("座席・整理番号", l.seat)}
     ${row("チケット代", l.price !== "" && l.price != null ? yen(l.price) : "")}
