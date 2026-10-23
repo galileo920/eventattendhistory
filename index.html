@@ -246,8 +246,10 @@ try { setAliases(JSON.parse(localStorage.getItem(ALIAS_LS) || "{}")); } catch(e)
 const canon = (kind, name) => { const m = aliases[kind] || {}; let n = String(name || "").trim(), i = 0; while(Object.prototype.hasOwnProperty.call(m, n) && i++ < 20) n = m[n]; return n; };
 const aliasNames = (kind, name) => { const c = canon(kind, name); return [c].concat(Object.keys(aliases[kind] || {}).filter(k => canon(kind, k) === c)); };
 const splitNames = s => String(s || "").split(/[、,，]/).map(x => x.trim()).filter(Boolean);
-const canonArtists = l => [...new Set(splitNames(l.artist).map(a => canon("artist", a)))];
-const aliasHay = l => [].concat(l.venue ? aliasNames("venue", l.venue) : [], ...splitNames(l.artist).map(a => aliasNames("artist", a))).join("\n").toLowerCase();
+/* 出演者は配列(artists)で持つ。artist(文字列)は表示・検索・CSV用に「、」でつないだもの。古いデータ(artistsなし)は「、」で分けて読む */
+const artistsOf = l => Array.isArray(l && l.artists) ? l.artists.map(x => String(x).trim()).filter(Boolean) : splitNames(l && l.artist);
+const canonArtists = l => [...new Set(artistsOf(l).map(a => canon("artist", a)))];
+const aliasHay = l => [].concat(l.venue ? aliasNames("venue", l.venue) : [], ...artistsOf(l).map(a => aliasNames("artist", a))).join("\n").toLowerCase();
 async function saveAliases(){
   try { localStorage.setItem(ALIAS_LS, JSON.stringify(aliases)); } catch(e){}
   if(typeof store !== "undefined" && store && store.putAlias){ try { await store.putAlias(aliases); } catch(e){} }
@@ -275,7 +277,7 @@ function bindAliasCard(rerender){
     const k = $("#alKind").value, t = norm(typed);
     if(!t) return [];
     const m = new Map();
-    lives.forEach(l => (k === "venue" ? (l.venue ? [l.venue] : []) : splitNames(l.artist)).forEach(n0 => { const n = n0; m.set(n, (m.get(n) || 0) + 1); }));
+    lives.forEach(l => (k === "venue" ? (l.venue ? [l.venue] : []) : artistsOf(l)).forEach(n0 => { const n = n0; m.set(n, (m.get(n) || 0) + 1); }));
     return [...m].filter(([n]) => n !== typed.trim() && norm(n).startsWith(t)).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name]) => ({name}));
   };
   [["#alOld", "old"], ["#alNew", "new"]].forEach(([id, field]) => $(id).addEventListener("input", e => showSugg(e.target, cands(field, e.target.value), c => { e.target.value = c.name; })));
@@ -601,7 +603,7 @@ function renderSettings(){
       <button class="btn danger" id="wipe">全データを削除</button>
       <div class="status" id="wst"></div>
     </div>
-    <div class="hint" style="text-align:center">イベント件数: ${lives.length} ／ Ver:1.4.2</div>
+    <div class="hint" style="text-align:center">イベント件数: ${lives.length} ／ Ver:1.5.0</div>
   `;
   if(dataMsg){ const d = $(dataMsg.id || "#dst"); d.className = "status " + dataMsg.cls; d.textContent = dataMsg.text; }
   bindAliasCard(renderSettings);
@@ -619,7 +621,7 @@ function renderSettings(){
 async function shareOrDownload(blob, name){
   const file = new File([blob], name, {type: blob.type});
   if(navigator.canShare && navigator.canShare({files: [file]})){
-    try { await navigator.share({files: [file], title: name}); return true; } catch(e){ if(e.name === "AbortError") return false; }
+    try { await navigator.share({files: [file]}); return true; } catch(e){ if(e.name === "AbortError") return false; }
   }
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -645,8 +647,9 @@ const isEmptyVal = v => v === "" || v == null;
 function mergeFill(ex, o){
   const m = {...ex}; let ch = false;
   FIELDS.forEach(k => { if(k !== "genre" && isEmptyVal(ex[k]) && !isEmptyVal(o[k])){ m[k] = o[k]; ch = true; } });
+  if(m.artist !== ex.artist){ if(Array.isArray(o.artists)) m.artists = o.artists; else delete m.artists; }
   if(o.artistRoles){
-    const rr = {...(ex.artistRoles || {})}, names = splitNames(m.artist);
+    const rr = {...(ex.artistRoles || {})}, names = artistsOf(m);
     Object.keys(o.artistRoles).forEach(n => { if(!rr[n] && names.includes(n)){ rr[n] = o.artistRoles[n]; ch = true; } });
     if(Object.keys(rr).length) m.artistRoles = rr;
   }
@@ -673,6 +676,7 @@ async function importJSON(e){
       if(!r || typeof r !== "object") continue;
       const o = {id: String(r.id || uid()).replace(/[^A-Za-z0-9_\-.~:@+]/g, "_"), createdAt: Number(r.createdAt) || Date.now(), updatedAt: Date.now()};
       FIELDS.forEach(k => { o[k] = r[k] ?? ""; });
+      { const a = Array.isArray(r.artists) ? r.artists.map(x => String(x).trim()).filter(Boolean) : []; if(a.length){ o.artists = a; o.artist = a.join("、"); } }
       if(r.artistRoles && typeof r.artistRoles === "object" && !Array.isArray(r.artistRoles)) o.artistRoles = r.artistRoles;
       { const ph = photoList(r); if(ph.length) o.photos = ph; }
       o.pref = normPref(o.pref);
@@ -715,7 +719,7 @@ function openDetail(id){
       ${photoGalleryHtml(l)}<div class="a">${esc(l.title || l.artist || "(未入力)")}</div>
       <div class="m">${fmtDate(l.date)}${venueLabel(l) ? " ／ " + venueLinks(l) : ""}</div>
     </div>
-    ${(() => { const a = (l.artist || "").split("、").map(x => x.trim()).filter(Boolean); return a.length > 10 ? `<div class="field scroll"><small>出演者</small><div tabindex="0">${a.map(n => lkBtn("artist", n)).join("\n")}</div></div>` : (a.length ? `<div class="field"><small>出演者</small><div>${a.map(n => lkBtn("artist", n)).join("\n")}</div></div>` : ""); })()}
+    ${(() => { const a = artistsOf(l); return a.length > 10 ? `<div class="field scroll"><small>出演者</small><div tabindex="0">${a.map(n => lkBtn("artist", n)).join("\n")}</div></div>` : (a.length ? `<div class="field"><small>出演者</small><div>${a.map(n => lkBtn("artist", n)).join("\n")}</div></div>` : ""); })()}
     ${row(genreOf(l) === "スポーツ" ? "開場 ／ 開始" : "開場 ／ 開演", [l.open, l.start].filter(Boolean).map(fmtTime).join(" ／ "))}
     ${row("席種・券種", l.seatType)}
     ${row("座席・整理番号", l.seat)}
@@ -747,7 +751,7 @@ function regCands(kind, typed, skipNames){
   if(!t) return [];
   const m = new Map();
   lives.forEach(l => {
-    const names = kind === "venue" ? (l.venue ? [l.venue] : []) : (l.artist || "").split(/[、,，]/).map(x => x.trim()).filter(Boolean);
+    const names = kind === "venue" ? (l.venue ? [l.venue] : []) : artistsOf(l);
     names.forEach(n0 => { const n = canon(kind, n0); const o = m.get(n) || {name: n, n: 0, pref: ""}; o.n++; if(kind === "venue" && l.pref) o.pref = l.pref; m.set(n, o); });
   });
   return [...m.values()].filter(o => o.name !== typed.trim() && !(skipNames || []).includes(o.name) && aliasNames(kind, o.name).some(x => norm(x).startsWith(t)))
@@ -849,7 +853,7 @@ function openForm(existing){
     ${existing ? `<button class="btn danger" id="del">削除</button>` : ""}
     <div class="bbar"><div class="bbar-in"><button class="btn sec" id="cancel">キャンセル</button><button class="btn" id="save">${existing ? "保存" : "登録"}</button></div></div>
   `;
-  artistRows(splitArtists(l.artist));
+  artistRows(artistsOf(l));
   const fillPref = v => { const sel = $("#f_pref"); if(!sel || sel.value) return; const k = lives.find(z => z.venue === v && z.pref); if(k) sel.value = k.pref; };
   $("#f_venue").addEventListener("change", e => fillPref(e.target.value.trim()));
   $("#f_tags").addEventListener("input", e => { const el = e.target, v = el.value, i = Math.max(v.lastIndexOf("、"), v.lastIndexOf(","), v.lastIndexOf("，")), head = v.slice(0, i + 1); showSugg(el, tagCands(v.slice(i + 1), splitTags(head)), c => { el.value = head + c.name; }); });
@@ -886,7 +890,7 @@ function openForm(existing){
     l.tags = splitTags(l.tags).join("、");
     l.genre = $("#f_genre").value || "音楽";
     l.title = l.title.replace(/\s*\n\s*/g, " ");
-    l.artist = readArtists().filter(Boolean).join("、");
+    l.artists = readArtists().filter(Boolean); l.artist = l.artists.join("、");
     if(!l.artist && !l.title){ alert("公演名か出演者を入力してください"); return; }
     l.price = l.price === "" ? "" : Number(l.price);
     { const ph = getPhotos(); if(ph.length) l.photos = ph; else delete l.photos; }
